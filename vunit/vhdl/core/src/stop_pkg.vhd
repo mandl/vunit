@@ -4,6 +4,6 @@
 --
 -- Copyright (c) 2015-2016, Lars Asplund lars.anders.asplund@gmail.com
 
-package vunit_stop_pkg is
-  procedure vunit_stop(status : integer);
+package stop_pkg is
+  procedure stop(status : integer);
 end package;

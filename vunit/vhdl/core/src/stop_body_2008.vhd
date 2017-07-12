@@ -4,8 +4,8 @@
 --
 -- Copyright (c) 2015-2016, Lars Asplund lars.anders.asplund@gmail.com
 
-package body vunit_stop_pkg is
-  procedure vunit_stop(status : integer) is
+package body stop_pkg is
+  procedure stop(status : integer) is
   begin
     std.env.stop(status);
   end procedure;
