@@ -32,6 +32,7 @@ class Builtins(object):
 
         add("array_util")
         add("com")
+        add("bfm", ["com", "osvvm"])
         add("osvvm")
         add("random", ["osvvm"])
 
@@ -105,6 +106,14 @@ class Builtins(object):
         self._vunit_lib.add_source_files(join(VHDL_PATH, "com", "src", "com_deprecated.vhd"))
         self._vunit_lib.add_source_files(join(VHDL_PATH, "com", "src", "com_common.vhd"))
         self._vunit_lib.add_source_files(join(VHDL_PATH, "com", "src", "com_string_payload.vhd"))
+
+    def _add_bfm(self):
+        """
+        Add bfm utility library
+        """
+        if self._vhdl_standard != '2008':
+            raise RuntimeError("BFM library only supports vhdl 2008")
+        self._add_files(join(VHDL_PATH, "bfm", "src", "*.vhd"))
 
     def _add_osvvm(self):
         """
