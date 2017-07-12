@@ -31,6 +31,7 @@ class Builtins(object):
             self._builtins_adder.add_type(name, getattr(self, "_add_%s" % name), deps)
 
         add("data_types")
+        add("bfm", ["data_types", "com", "osvvm"])
         add("com", ["data_types"])
         add("osvvm")
         add("random", ["data_types", "osvvm"])
@@ -55,6 +56,15 @@ class Builtins(object):
             raise RuntimeError("Random only supports vhdl 2008")
 
         self._vunit_lib.add_source_files(join(VHDL_PATH, "random", "src", "*.vhd"))
+
+    def _add_bfm(self):
+        """
+        Add bfm utility library
+        """
+        if self._vhdl_standard != '2008':
+            raise RuntimeError("BFM library only supports vhdl 2008")
+
+        self._vunit_lib.add_source_files(join(VHDL_PATH, "bfm", "src", "*.vhd"))
 
     def _add_com(self, use_debug_codecs=False):
         """

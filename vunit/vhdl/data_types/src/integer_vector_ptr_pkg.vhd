@@ -27,6 +27,7 @@ package integer_vector_ptr_pkg is
   impure function get(ptr : integer_vector_ptr_t; index : integer) return integer;
   procedure reallocate(ptr : integer_vector_ptr_t; length : natural);
   procedure resize(ptr : integer_vector_ptr_t; length : natural; drop : natural := 0; value : integer := 0);
+
 end package;
 
 package body integer_vector_ptr_pkg is
