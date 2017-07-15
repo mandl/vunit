@@ -124,7 +124,7 @@ begin
         write_addr(id, base_address(alloc), len, log_size, burst);
 
         for i in 0 to len-1 loop
-          read_data(id, base_address(alloc)+size*i, size, axi_resp_ok, i=len-1);
+          read_data(id, base_address(alloc)+size*i, size, axi_resp_okay, i=len-1);
         end loop;
       end loop;
 

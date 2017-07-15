@@ -60,7 +60,7 @@ begin
     variable rnd : RandomPType;
 
     procedure read_response(id : std_logic_vector;
-                            resp : axi_resp_t := axi_resp_ok) is
+                            resp : axi_resp_t := axi_resp_okay) is
     begin
       bready <= '1';
       wait until (bvalid and bready) = '1' and rising_edge(clk);
@@ -156,7 +156,7 @@ begin
           wdata <= (others => '0');
         end loop;
 
-        read_response(id, axi_resp_ok);
+        read_response(id, axi_resp_okay);
 
         check_all_was_written(alloc);
       end loop;
@@ -175,7 +175,7 @@ begin
       wait until length(error_queue) > 0 and rising_edge(clk);
       check_equal(pop_string(error_queue), "Expected wlast='1' on last beat of burst with length 1 starting at address 0");
       check_equal(length(error_queue), 0, "no more errors");
-      read_response(x"2", axi_resp_ok);
+      read_response(x"2", axi_resp_okay);
 
     elsif run("Test error on missing tlast incr") then
       disable_fail_on_error(event, axi_slave, error_queue);
@@ -197,7 +197,7 @@ begin
 
       check_equal(pop_string(error_queue), "Expected wlast='1' on last beat of burst with length 2 starting at address 0");
       check_equal(length(error_queue), 0, "no more errors");
-      read_response(x"2", axi_resp_ok);
+      read_response(x"2", axi_resp_okay);
 
     elsif run("Test error on unsupported wrap burst") then
       disable_fail_on_error(event, axi_slave, error_queue);

@@ -21,6 +21,7 @@ package fail_pkg is
   procedure enable_failure(fail_log : fail_log_t);
   procedure disable_failure(fail_log : fail_log_t);
   procedure check_no_failures(fail_log : fail_log_t);
+  impure function has_failure(fail_log : fail_log_t) return boolean;
   impure function pop_failure(fail_log : fail_log_t) return string;
 end package;
 
@@ -62,6 +63,11 @@ package body fail_pkg is
         severity failure;
     end loop;
   end;
+
+  impure function has_failure(fail_log : fail_log_t) return boolean is
+  begin
+    return length(fail_log.p_fail_queue) > 0;
+  end function;
 
   impure function pop_failure(fail_log : fail_log_t) return string is
   begin

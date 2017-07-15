@@ -12,7 +12,10 @@ context work.com_context;
 
 package axi_pkg is
   subtype axi_resp_t is std_logic_vector(1 downto 0);
-  constant axi_resp_ok : axi_resp_t := "00";
+  constant axi_resp_okay : axi_resp_t := "00";
+  constant axi_resp_exokay : axi_resp_t := "01";
+  constant axi_resp_slverr : axi_resp_t := "10";
+  constant axi_resp_decerr : axi_resp_t := "11";
 
   subtype axi_burst_type_t is std_logic_vector(1 downto 0);
   constant axi_burst_type_fixed : axi_burst_type_t := "00";

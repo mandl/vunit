@@ -114,7 +114,7 @@ begin
         resp_burst := self.pop_resp;
         bvalid <= '1';
         bid <= std_logic_vector(to_unsigned(resp_burst.id, bid'length));
-        bresp <= axi_resp_ok;
+        bresp <= axi_resp_okay;
       end if;
 
       if beats > 0 and not (beats = 1 and self.resp_queue_full) then

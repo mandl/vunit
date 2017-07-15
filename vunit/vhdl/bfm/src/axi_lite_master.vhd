@@ -11,6 +11,8 @@ use ieee.std_logic_1164.all;
 use work.axi_pkg.all;
 use work.queue_pkg.all;
 use work.bus_pkg.all;
+use work.fail_pkg.all;
+use work.axi_private_pkg.all;
 context work.com_context;
 
 entity axi_lite_master is
@@ -27,7 +29,7 @@ entity axi_lite_master is
     rready : out std_logic := '0';
     rvalid : in std_logic;
     rdata : in std_logic_vector(data_length(bus_handle)-1 downto 0);
-    rresp : in std_logic_vector(1 downto 0);
+    rresp : in axi_resp_t;
 
     awready : in std_logic;
     awvalid : out std_logic := '0';
@@ -40,7 +42,7 @@ entity axi_lite_master is
 
     bvalid : in std_logic;
     bready : out std_logic;
-    bresp : in std_logic_vector(1 downto 0) := axi_resp_ok);
+    bresp : in axi_resp_t := axi_resp_okay);
 end entity;
 
 architecture a of axi_lite_master is
@@ -64,8 +66,9 @@ begin
 
           rready <= '1';
           wait until (rvalid and rready) = '1' and rising_edge(aclk);
-          assert rresp = axi_resp_ok report "Got non-OKAY rresp";
           rready <= '0';
+          check_axi_resp(bus_handle, rresp, axi_resp_okay, "rresp");
+
           reply_msg := create;
           push_std_ulogic_vector(reply_msg.data, rdata);
           reply(event, request_msg, reply_msg);
@@ -98,7 +101,7 @@ begin
           bready <= '1';
           wait until (bvalid and bready) = '1' and rising_edge(aclk);
           bready <= '0';
-          assert bresp = axi_resp_ok report "Got non-OKAY bresp";
+          check_axi_resp(bus_handle, bresp, axi_resp_okay, "bresp");
       end case;
     end loop;
   end process;

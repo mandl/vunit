@@ -15,6 +15,7 @@ use std.textio.all;
 use work.axi_pkg.all;
 use work.queue_pkg.all;
 use work.fail_pkg.all;
+use work.bus_pkg.all;
 context work.com_context;
 
 library osvvm;
@@ -70,6 +71,7 @@ package axi_private_pkg is
   procedure main_loop(variable self : inout axi_slave_private_t;
                       signal event : inout event_t);
 
+  procedure check_axi_resp(bus_handle : bus_t; got, expected : axi_resp_t; msg : string);
 end package;
 
 
@@ -320,4 +322,25 @@ package body axi_private_pkg is
     end loop;
   end;
 
+  function resp_to_string(resp : axi_resp_t) return string is
+  begin
+    case resp is
+      when axi_resp_okay => return "OKAY";
+      when axi_resp_exokay => return "EXOKAY";
+      when axi_resp_slverr => return "SLVERR";
+      when axi_resp_decerr => return "DECERR";
+      when others => return "UNKNOWN";
+    end case;
+  end;
+
+  procedure check_axi_resp(bus_handle : bus_t; got, expected : axi_resp_t; msg : string) is
+    function describe(resp : axi_resp_t) return string is
+    begin
+      return resp_to_string(resp) & "(" & to_string(resp) & ")";
+    end;
+  begin
+    if got /= expected then
+      fail(bus_handle.p_fail_log, msg & " - Got AXI response "  & describe(got) & " expected " & describe(expected));
+    end if;
+  end;
 end package body;

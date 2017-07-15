@@ -80,7 +80,7 @@ begin
         burst := self.pop_burst;
         beats := burst.length;
         rid <= std_logic_vector(to_unsigned(burst.id, rid'length));
-        rresp <= axi_resp_ok;
+        rresp <= axi_resp_okay;
         address := burst.address;
       end if;
 

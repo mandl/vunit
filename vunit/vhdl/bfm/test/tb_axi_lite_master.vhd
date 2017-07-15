@@ -14,6 +14,7 @@ context work.com_context;
 
 use work.axi_pkg.all;
 use work.bus_pkg.all;
+use work.fail_pkg.all;
 
 library osvvm;
 use osvvm.RandomPkg.all;
@@ -68,9 +69,16 @@ begin
     elsif run("Test single write with byte enable") then
       write_bus(event, bus_handle, x"01234567", x"1122", byte_enable => "10");
 
+    elsif run("Test write not okay") then
+      write_bus(event, bus_handle, x"01234567", x"1122");
+
     elsif run("Test single read") then
       read_bus(event, bus_handle, x"01234567", tmp);
       check_equal(tmp, std_logic_vector'(x"5566"), "read data");
+
+    elsif run("Test read not okay") then
+      read_bus(event, bus_handle, x"01234567", tmp);
+
     elsif run("Test random") then
       for i in 0 to num_random_tests-1 loop
         if rnd.RandInt(0, 1) = 0 then
@@ -113,7 +121,7 @@ begin
       check_equal(wstrb, std_logic_vector'("11"), "wstrb");
 
       bvalid <= '1';
-      bresp <= axi_resp_ok;
+      bresp <= axi_resp_okay;
       wait until (bready and bvalid) = '1' and rising_edge(clk);
       bvalid <= '0';
 
@@ -132,9 +140,29 @@ begin
       check_equal(wstrb, std_logic_vector'("10"), "wstrb");
 
       bvalid <= '1';
-      bresp <= axi_resp_ok;
+      bresp <= axi_resp_okay;
       wait until (bready and bvalid) = '1' and rising_edge(clk);
       bvalid <= '0';
+
+      done <= true;
+
+    elsif enabled("Test write not okay") then
+      awready <= '1';
+      wait until (awready and awvalid) = '1' and rising_edge(clk);
+      awready <= '0';
+
+      wready <= '1';
+      wait until (wready and wvalid) = '1' and rising_edge(clk);
+      wready <= '0';
+
+      bvalid <= '1';
+      bresp <= axi_resp_slverr;
+      disable_failure(bus_handle.p_fail_log);
+      wait until (bready and bvalid) = '1' and rising_edge(clk);
+      bvalid <= '0';
+      wait until has_failure(bus_handle.p_fail_log) for 0 ns;
+      check_equal(pop_failure(bus_handle.p_fail_log), "bresp - Got AXI response SLVERR(10) expected OKAY(00)");
+      check_no_failures(bus_handle.p_fail_log);
 
       done <= true;
 
@@ -145,10 +173,27 @@ begin
       check_equal(araddr, std_logic_vector'(x"01234567"), "araddr");
 
       rvalid <= '1';
-      rresp <= axi_resp_ok;
+      rresp <= axi_resp_okay;
       rdata <= x"5566";
       wait until (rready and rvalid) = '1' and rising_edge(clk);
       rvalid <= '0';
+
+      done <= true;
+
+    elsif enabled("Test read not okay") then
+      arready <= '1';
+      wait until (arready and arvalid) = '1' and rising_edge(clk);
+      arready <= '0';
+
+      rvalid <= '1';
+      rresp <= axi_resp_decerr;
+      rdata <= x"5566";
+      disable_failure(bus_handle.p_fail_log);
+      wait until (rready and rvalid) = '1' and rising_edge(clk);
+      rvalid <= '0';
+      wait until has_failure(bus_handle.p_fail_log) for 0 ns;
+      check_equal(pop_failure(bus_handle.p_fail_log), "rresp - Got AXI response DECERR(11) expected OKAY(00)");
+      check_no_failures(bus_handle.p_fail_log);
 
       done <= true;
 
@@ -161,7 +206,7 @@ begin
           check_equal(araddr, rnd.RandSlv(araddr'length), "araddr");
 
           rvalid <= '1';
-          rresp <= axi_resp_ok;
+          rresp <= axi_resp_okay;
           rdata <= rnd.RandSlv(rdata'length);
           wait until (rready and rvalid) = '1' and rising_edge(clk);
           rvalid <= '0';
@@ -178,7 +223,7 @@ begin
           check_equal(wstrb, std_logic_vector'("11"), "wstrb");
 
           bvalid <= '1';
-          bresp <= axi_resp_ok;
+          bresp <= axi_resp_okay;
           wait until (bready and bvalid) = '1' and rising_edge(clk);
           bvalid <= '0';
         end if;
