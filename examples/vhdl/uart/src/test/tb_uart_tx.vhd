@@ -65,7 +65,7 @@ begin
                  file_name => join(output_path(runner_cfg), "error.csv"),
                  file_format => verbose_csv);
     logger_init(display_format => verbose,
-                 file_name => join(output_path(runner_cfg), "log.csv"),
+                file_name => join(output_path(runner_cfg), "log.csv"),
                 file_format => verbose_csv);
     stop_level((debug, verbose), display_handler, filter);
     test_runner_setup(runner, runner_cfg);
