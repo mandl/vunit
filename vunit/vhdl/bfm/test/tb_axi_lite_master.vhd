@@ -65,6 +65,9 @@ begin
     if run("Test single write") then
       write_bus(event, bus_handle, x"01234567", x"1122");
 
+    elsif run("Test single write with byte enable") then
+      write_bus(event, bus_handle, x"01234567", x"1122", byte_enable => "10");
+
     elsif run("Test single read") then
       read_bus(event, bus_handle, x"01234567", tmp);
       check_equal(tmp, std_logic_vector'(x"5566"), "read data");
@@ -115,6 +118,26 @@ begin
       bvalid <= '0';
 
       done <= true;
+
+    elsif enabled("Test single write with byte enable") then
+      awready <= '1';
+      wait until (awready and awvalid) = '1' and rising_edge(clk);
+      awready <= '0';
+      check_equal(awaddr, std_logic_vector'(x"01234567"), "awaddr");
+
+      wready <= '1';
+      wait until (wready and wvalid) = '1' and rising_edge(clk);
+      wready <= '0';
+      check_equal(wdata, std_logic_vector'(x"1122"), "wdata");
+      check_equal(wstrb, std_logic_vector'("10"), "wstrb");
+
+      bvalid <= '1';
+      bresp <= axi_resp_ok;
+      wait until (bready and bvalid) = '1' and rising_edge(clk);
+      bvalid <= '0';
+
+      done <= true;
+
     elsif enabled("Test single read") then
       arready <= '1';
       wait until (arready and arvalid) = '1' and rising_edge(clk);

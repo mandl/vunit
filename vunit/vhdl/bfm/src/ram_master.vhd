@@ -20,8 +20,8 @@ entity ram_master is
     );
   port (
     clk : in std_logic;
-    wr : out std_logic := '0';
-    rd : out std_logic := '0';
+    en : out std_logic := '0';
+    we : out std_logic_vector;
     addr : out std_logic_vector;
     wdata : out std_logic_vector;
     rdata : in std_logic_vector
@@ -29,6 +29,7 @@ entity ram_master is
 end entity;
 
 architecture a of ram_master is
+  signal rd : std_logic := '0';
   signal rd_pipe : std_logic_vector(0 to latency-1);
   constant request_queue : queue_t := allocate;
 begin
@@ -45,15 +46,19 @@ begin
     case bus_request.access_type is
       when read_access =>
         push(request_queue, request_msg);
+        en <= '1';
         rd <= '1';
-        wait until rd = '1' and rising_edge(clk);
+        we <= (we'range => '0');
+        wait until en = '1' and rising_edge(clk);
+        en <= '0';
         rd <= '0';
 
       when write_access =>
-        wr <= '1';
+        en <= '1';
+        we <= bus_request.byte_enable;
         wdata <= bus_request.data;
-        wait until wr = '1' and rising_edge(clk);
-        wr <= '0';
+        wait until en = '1' and rising_edge(clk);
+        en <= '0';
     end case;
   end process;
 

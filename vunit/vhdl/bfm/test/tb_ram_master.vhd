@@ -24,8 +24,8 @@ architecture a of tb_ram_master is
   constant num_back_to_back_reads : integer := 64;
 
   signal clk   : std_logic := '0';
-  signal wr    : std_logic;
-  signal rd    : std_logic;
+  signal en    : std_logic;
+  signal we    : std_logic_vector(3 downto 0);
   signal addr  : std_logic_vector(7 downto 0);
   signal wdata : std_logic_vector(31 downto 0);
   signal rdata : std_logic_vector(31 downto 0) := (others => '0');
@@ -46,6 +46,9 @@ begin
 
     if run("Test single write") then
       write_bus(event, bus_handle, x"77", x"11223344");
+
+    elsif run("Test single write with byte enable") then
+      write_bus(event, bus_handle, x"77", x"11223344", byte_enable => "0101");
 
     elsif run("Test single read") then
       read_bus(event, bus_handle, x"33", tmp);
@@ -80,38 +83,51 @@ begin
     wait until start;
 
     if enabled("Test single write") then
-      wait until wr = '1' and rising_edge(clk);
-      check_equal(rd, '0', "rd");
+      wait until en = '1' and rising_edge(clk);
+      check_equal(en, '1', "en");
+      check_equal(we, std_logic_vector'("1111"), "we");
       check_equal(addr, std_logic_vector'(x"77"), "addr");
       check_equal(wdata, std_logic_vector'(x"11223344"), "wdata");
       done <= true;
-      wait until wr = '1' and rising_edge(clk);
+      wait until en = '1' and rising_edge(clk);
+      assert false report "Should never happen";
+
+    elsif enabled("Test single write with byte enable") then
+      wait until en = '1' and rising_edge(clk);
+      check_equal(en, '1', "en");
+      check_equal(we, std_logic_vector'("0101"), "we");
+      check_equal(addr, std_logic_vector'(x"77"), "addr");
+      check_equal(wdata, std_logic_vector'(x"11223344"), "wdata");
+      done <= true;
+      wait until en = '1' and rising_edge(clk);
       assert false report "Should never happen";
 
     elsif enabled("Test single read") then
       rdata <= x"11223344";
-      wait until rd = '1' and rising_edge(clk);
+      wait until en = '1' and rising_edge(clk);
+      check_equal(we, std_logic_vector'("0000"), "we");
       check_equal(addr, std_logic_vector'(x"33"), "addr");
       for i in 2 to latency loop
         wait until rising_edge(clk);
-        check_equal(rd, '0', "rd");
+        check_equal(en, '0', "en");
       end loop;
 
       rdata <= x"55667788";
       wait until rising_edge(clk);
-      check_equal(rd, '0', "rd");
+      check_equal(en, '0', "en");
       rdata <= x"99aabbcc";
       done <= true;
 
     elsif enabled("Test read back to back") then
-      wait until rd = '1' and rising_edge(clk);
+      wait until en = '1' and rising_edge(clk);
 
       for i in 1 to num_back_to_back_reads + (latency-1) loop
         if i <= num_back_to_back_reads then
-          check_equal(rd, '1', "rd");
+          check_equal(en, '1', "en");
+          check_equal(we, std_logic_vector'("0000"), "we");
           check_equal(addr, i, "addr");
         else
-          check_equal(rd, '0', "rd");
+          check_equal(en, '0', "en");
         end if;
 
         if i > (latency-1) then
@@ -131,8 +147,8 @@ begin
       latency => latency)
     port map (
       clk   => clk,
-      wr    => wr,
-      rd    => rd,
+      en    => en,
+      we    => we,
       addr  => addr,
       wdata => wdata,
       rdata => rdata);

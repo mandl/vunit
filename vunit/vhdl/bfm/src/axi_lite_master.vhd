@@ -74,7 +74,7 @@ begin
         when write_access =>
           awaddr <= bus_request.address;
           wdata <= bus_request.data;
-          wstrb <= (wstrb'range => '1');
+          wstrb <= bus_request.byte_enable;
 
           wvalid <= '1';
           awvalid <= '1';
