@@ -10,11 +10,9 @@ use ieee.numeric_std.all;
 
 library vunit_lib;
 context vunit_lib.vunit_context;
+context vunit_lib.bfm_context;
 
 library uart_lib;
-
-library tb_uart_lib;
-use tb_uart_lib.uart_model_pkg.all;
 
 entity tb_uart_rx is
   generic (
@@ -34,6 +32,9 @@ architecture tb of tb_uart_rx is
   signal tdata : std_logic_vector(7 downto 0);
 
   signal num_overflows : integer := 0;
+
+  constant uart_bfm : uart_master_t := new_uart_master(initial_baud_rate => baud_rate);
+  constant uart_stream : stream_master_t := as_stream(uart_bfm);
 begin
 
   main : process
@@ -53,20 +54,22 @@ begin
       if run("test_tvalid_low_at_start") then
         wait until tvalid = '1' for 1 ms;
         check_equal(tvalid, '0');
+
       elsif run("test_receives_one_byte") then
-        uart_send(77, rx, baud_rate);
+        write_stream(event, uart_stream, x"77");
         tready <= '1';
         wait until tready = '1' and tvalid = '1' and rising_edge(clk);
-        check_equal(unsigned(tdata), 77);
+        check_equal(tdata, std_logic_vector'(x"77"));
         tready <= '0';
         check_false(clk, check_enabled, tvalid);
         check_equal(num_overflows, 0);
+
       elsif run("test_two_bytes_casues_overflow") then
-        uart_send(77, rx, baud_rate);
+        write_stream(event, uart_stream, x"77");
         wait until tvalid = '1' and rising_edge(clk);
         check_equal(num_overflows, 0);
         wait for 1 ms;
-        uart_send(77, rx, baud_rate);
+        write_stream(event, uart_stream, x"77");
         wait for 1 ms;
         wait until num_overflows = 1 and rising_edge(clk);
       end if;
@@ -100,4 +103,9 @@ begin
       tvalid => tvalid,
       tdata => tdata);
 
+  uart_master_bfm : entity vunit_lib.uart_master
+    generic map (
+      uart => uart_bfm)
+    port map (
+      tx => rx);
 end architecture;

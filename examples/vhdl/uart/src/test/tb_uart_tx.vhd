@@ -10,14 +10,12 @@ use ieee.numeric_std.all;
 
 library vunit_lib;
 context vunit_lib.vunit_context;
+context vunit_lib.bfm_context;
 
 library osvvm;
 use osvvm.RandomPkg.all;
 
 library uart_lib;
-
-library tb_uart_lib;
-use tb_uart_lib.uart_model_pkg.all;
 
 entity tb_uart_tx is
   generic (
@@ -35,8 +33,9 @@ architecture tb of tb_uart_tx is
   signal tvalid : std_Logic := '0';
   signal tdata : std_logic_vector(7 downto 0) := (others => '0');
 
-  signal num_sent, num_recv : integer := 0;
   shared variable rnd_stimuli, rnd_expected : RandomPType;
+  constant uart_bfm : uart_slave_t := new_uart_slave(initial_baud_rate => baud_rate);
+  constant uart_stream : stream_slave_t := as_stream(uart_bfm);
 begin
 
   main : process
@@ -45,17 +44,17 @@ begin
     procedure send is
     begin
       tvalid <= '1';
-      tdata <= std_logic_vector(to_unsigned(rnd_stimuli.RandInt(0, 2**tdata'length-1), tdata'length));
+      tdata <= rnd_stimuli.RandSlv(tdata'length);
       wait until tvalid = '1' and tready = '1' and rising_edge(clk);
-      num_sent <= num_sent + 1;
       tvalid <= '0';
       tdata <= (others => '0');
     end procedure;
 
-    procedure check_all_was_received is
+    procedure check_expected(num_bytes : natural) is
     begin
-      wait until num_recv = num_sent for 1 ms;
-      check_equal(num_recv, num_sent);
+      for i in 0 to num_bytes-1 loop
+        check_stream(event, uart_stream, rnd_expected.RandSlv(tdata'length));
+      end loop;
     end procedure;
 
     variable stat : checker_stat_t;
@@ -77,17 +76,17 @@ begin
     while test_suite loop
       if run("test_send_one_byte") then
         send;
-        check_all_was_received;
+        check_expected(1);
       elsif run("test_send_two_bytes") then
         send;
-        check_all_was_received;
+        check_expected(1);
         send;
-        check_all_was_received;
+        check_expected(1);
       elsif run("test_send_many_bytes") then
         for i in 0 to 7 loop
           send;
         end loop;
-        check_all_was_received;
+        check_expected(8);
       end if;
     end loop;
 
@@ -101,15 +100,6 @@ begin
   end process;
   test_runner_watchdog(runner, 10 ms);
 
-  uart_rx_behav : process
-    variable data : integer;
-  begin
-    uart_recv(data, tx, baud_rate);
-    num_recv <= num_recv + 1;
-    report "Received " & to_string(data);
-    check_equal(data, rnd_expected.RandInt(0, 2**tdata'length-1));
-  end process;
-
   clk <= not clk after (clk_period/2) * 1 ns;
 
   dut : entity uart_lib.uart_tx
@@ -121,5 +111,11 @@ begin
       tready => tready,
       tvalid => tvalid,
       tdata => tdata);
+
+  uart_slave_bfm : entity vunit_lib.uart_slave
+    generic map (
+      uart => uart_bfm)
+    port map (
+      rx => tx);
 
 end architecture;
