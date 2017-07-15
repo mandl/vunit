@@ -16,6 +16,7 @@ use work.queue_pkg.all;
 use work.bus_pkg.all;
 use work.memory_pkg.all;
 use work.fail_pkg.all;
+use work.message_types_pkg.all;
 
 entity tb_bus_pkg is
   generic (runner_cfg : string);
@@ -94,31 +95,37 @@ begin
 
   memory_model : process
     variable request_msg, reply_msg : msg_t;
-    variable bus_request : bus_request_t(address(address_length(bus_handle)-1 downto 0),
-                                         data(data_length(bus_handle)-1 downto 0),
-                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
+    variable msg_type : message_type_t;
+    variable address : std_logic_vector(address_length(bus_handle)-1 downto 0);
+    variable byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
     variable data  : std_logic_vector(data_length(bus_handle)-1 downto 0);
     constant blen : natural := byte_length(bus_handle);
   begin
     loop
       receive(event, bus_handle.p_actor, request_msg);
-      decode(request_msg, bus_request);
+      msg_type := pop_message_type(request_msg.data);
 
-      case bus_request.access_type is
-        when read_access =>
-          data := read_word(memory, to_integer(unsigned(bus_request.address)), bytes_per_word => data'length/8);
-          reply_msg := create;
-          push_std_ulogic_vector(reply_msg.data, data);
-          reply(event, request_msg, reply_msg);
-        when write_access =>
-          for i in bus_request.byte_enable'range loop
-            -- @TODO byte_enable on memory_t?
-            if bus_request.byte_enable(i) = '1' then
-              write_byte(memory, to_integer(unsigned(bus_request.address))+i,
-                         to_integer(unsigned(bus_request.data(blen*(i+1)-1 downto blen*i))));
-            end if;
-          end loop;
-      end case;
+      if msg_type = bus_read_msg then
+        address := pop_std_ulogic_vector(request_msg.data);
+        data := read_word(memory, to_integer(unsigned(address)), bytes_per_word => data'length/8);
+        reply_msg := create;
+        push_std_ulogic_vector(reply_msg.data, data);
+        reply(event, request_msg, reply_msg);
+
+      elsif msg_type = bus_write_msg then
+        address := pop_std_ulogic_vector(request_msg.data);
+        data := pop_std_ulogic_vector(request_msg.data);
+        byte_enable := pop_std_ulogic_vector(request_msg.data);
+
+        for i in byte_enable'range loop
+          -- @TODO byte_enable on memory_t?
+          if byte_enable(i) = '1' then
+            write_word(memory, to_integer(unsigned(address))+i, data(blen*(i+1)-1 downto blen*i));
+          end if;
+        end loop;
+      else
+        unexpected_message_type(msg_type);
+      end if;
     end loop;
   end process;
 

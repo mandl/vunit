@@ -7,37 +7,66 @@
 
 use work.integer_vector_ptr_pkg.all;
 use work.string_ptr_pkg.all;
+use work.queue_pkg.all;
 use work.fail_pkg.all;
 
 package message_types_pkg is
   type message_types_t is record
     p_name_ptrs : integer_vector_ptr_t;
+    p_fail_log : fail_log_t;
   end record;
 
-  constant message_types : message_types_t := (
-    p_name_ptrs => allocate);
+  constant p_message_types : message_types_t := (
+    p_name_ptrs => allocate,
+    p_fail_log => new_fail_log);
 
-  impure function new_message_type(name : string) return natural;
-  procedure unexpected_message_type(fail_log : fail_log_t; code : natural);
+  type message_type_t is record
+    p_code : integer;
+  end record;
+
+  impure function new_message_type(name : string) return message_type_t;
+  procedure unexpected_message_type(message_type : message_type_t);
+
+  procedure push_message_type(queue : queue_t; message_type : message_type_t);
+  impure function pop_message_type(queue : queue_t) return message_type_t;
 end package;
 
 package body message_types_pkg is
 
-  impure function new_message_type(name : string) return natural is
-    variable code : natural := length(message_types.p_name_ptrs);
+  impure function new_message_type(name : string) return message_type_t is
+    variable code : integer := length(p_message_types.p_name_ptrs);
   begin
-    resize(message_types.p_name_ptrs, code+1);
-    set(message_types.p_name_ptrs, code, to_integer(allocate(name)));
-    return code;
+    resize(p_message_types.p_name_ptrs, code+1);
+    set(p_message_types.p_name_ptrs, code, to_integer(allocate(name)));
+    return (p_code => code);
   end function;
 
-  procedure unexpected_message_type(fail_log : fail_log_t; code : natural) is
+  impure function is_valid(code : integer) return boolean is
   begin
-    if code < length(message_types.p_name_ptrs) then
-      fail(fail_log, "Got unexpected message " & to_string(get(message_types.p_name_ptrs, code)));
+    return 0 <= code and code < length(p_message_types.p_name_ptrs);
+  end;
+
+  procedure unexpected_message_type(message_type : message_type_t) is
+    constant code : integer := message_type.p_code;
+  begin
+    if is_valid(code) then
+      fail(p_message_types.p_fail_log, "Got unexpected message " & to_string(get(p_message_types.p_name_ptrs, code)));
     else
-      fail(fail_log, "Got unexpected message with code " & to_string(code));
+      fail(p_message_types.p_fail_log, "Got invalid message with code " & to_string(code));
     end if;
   end procedure;
 
+  procedure push_message_type(queue : queue_t; message_type : message_type_t) is
+  begin
+    push(queue, message_type.p_code);
+  end;
+
+  impure function pop_message_type(queue : queue_t) return message_type_t is
+    constant code : integer := pop(queue);
+  begin
+    if not is_valid(code) then
+      fail(p_message_types.p_fail_log, "Got invalid message with code " & to_string(code));
+    end if;
+    return (p_code => code);
+  end;
 end package body;

@@ -16,6 +16,7 @@ use work.axi_pkg.all;
 use work.queue_pkg.all;
 use work.fail_pkg.all;
 use work.bus_pkg.all;
+use work.message_types_pkg.all;
 context work.com_context;
 
 library osvvm;
@@ -59,6 +60,7 @@ package axi_private_pkg is
     impure function pop_resp return axi_burst_t;
 
     impure function get_error_queue return queue_t;
+    impure function get_fail_log return fail_log_t;
     procedure set_error_queue(error_queue : queue_t);
     procedure fail(msg : string);
     procedure check_4kb_boundary(burst : axi_burst_t);
@@ -227,6 +229,11 @@ package body axi_private_pkg is
       return p_fail_log.p_fail_queue;
     end;
 
+    impure function get_fail_log return fail_log_t is
+    begin
+      return p_fail_log;
+    end;
+
     procedure set_error_queue(error_queue : queue_t) is
     begin
       if error_queue = null_queue then
@@ -288,36 +295,37 @@ package body axi_private_pkg is
   procedure main_loop(variable self : inout axi_slave_private_t;
                       signal event : inout event_t) is
     variable request_msg, reply_msg : msg_t;
-    variable msg_type : axi_message_type_t;
+    variable msg_type : message_type_t;
   begin
     loop
       receive(event, self.get_actor, request_msg);
-      msg_type := axi_message_type_t'val(integer'(pop(request_msg.data)));
+      msg_type := pop_message_type(request_msg.data);
 
       reply_msg := create;
-      case msg_type is
-        when msg_disable_fail_on_error =>
-          self.set_error_queue(allocate);
-          push_queue_ref(reply_msg.data, self.get_error_queue);
-          reply(event, request_msg, reply_msg);
+      if msg_type = axi_slave_disable_fail_on_error_msg then
+        self.set_error_queue(allocate);
+        push_queue_ref(reply_msg.data, self.get_error_queue);
+        reply(event, request_msg, reply_msg);
 
-        when msg_set_address_channel_fifo_depth =>
-          self.set_address_channel_fifo_depth(pop(request_msg.data));
-          acknowledge(event, request_msg, true);
+      elsif msg_type = axi_slave_set_address_channel_fifo_depth_msg then
+        self.set_address_channel_fifo_depth(pop(request_msg.data));
+        acknowledge(event, request_msg, true);
 
-        when msg_set_write_response_fifo_depth =>
-          self.set_write_response_fifo_depth(pop(request_msg.data));
-          acknowledge(event, request_msg, true);
+      elsif msg_type = axi_slave_set_write_response_fifo_depth_msg then
+        self.set_write_response_fifo_depth(pop(request_msg.data));
+        acknowledge(event, request_msg, true);
 
-        when msg_set_address_channel_stall_probability =>
-          self.set_address_channel_stall_probability(pop_real(request_msg.data));
-          acknowledge(event, request_msg, true);
+      elsif msg_type = axi_slave_set_address_channel_stall_probability_msg then
+        self.set_address_channel_stall_probability(pop_real(request_msg.data));
+        acknowledge(event, request_msg, true);
 
-        when msg_enable_well_behaved_check =>
-          self.enable_well_behaved_check;
-          acknowledge(event, request_msg, true);
+      elsif msg_type = axi_slave_enable_well_behaved_check_msg then
+        self.enable_well_behaved_check;
+        acknowledge(event, request_msg, true);
+      else
+        unexpected_message_type(msg_type);
+      end if;
 
-      end case;
       delete(request_msg);
     end loop;
   end;

@@ -11,6 +11,7 @@ use ieee.numeric_std.all;
 
 use work.queue_pkg.all;
 use work.bus_pkg.all;
+use work.message_types_pkg.all;
 context work.com_context;
 
 entity ram_master is
@@ -35,31 +36,32 @@ architecture a of ram_master is
 begin
   main : process
     variable request_msg : msg_t;
-    variable bus_request : bus_request_t(address(addr'range), data(wdata'range),
-                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
+    variable msg_type : message_type_t;
   begin
     receive(event, bus_handle.p_actor, request_msg);
-    decode(request_msg, bus_request);
+    msg_type := pop_message_type(request_msg.data);
 
-    addr <= bus_request.address;
+    if msg_type = bus_read_msg then
+      en <= '1';
+      addr <= pop_std_ulogic_vector(request_msg.data);
+      rd <= '1';
+      we <= (we'range => '0');
+      push(request_queue, request_msg);
+      wait until en = '1' and rising_edge(clk);
+      en <= '0';
+      rd <= '0';
 
-    case bus_request.access_type is
-      when read_access =>
-        push(request_queue, request_msg);
-        en <= '1';
-        rd <= '1';
-        we <= (we'range => '0');
-        wait until en = '1' and rising_edge(clk);
-        en <= '0';
-        rd <= '0';
+    elsif msg_type = bus_write_msg then
+      en <= '1';
+      addr <= pop_std_ulogic_vector(request_msg.data);
+      wdata <= pop_std_ulogic_vector(request_msg.data);
+      we <= pop_std_ulogic_vector(request_msg.data);
+      wait until en = '1' and rising_edge(clk);
+      en <= '0';
+    else
+      unexpected_message_type(msg_type);
+    end if;
 
-      when write_access =>
-        en <= '1';
-        we <= bus_request.byte_enable;
-        wdata <= bus_request.data;
-        wait until en = '1' and rising_edge(clk);
-        en <= '0';
-    end case;
   end process;
 
   read_return : process

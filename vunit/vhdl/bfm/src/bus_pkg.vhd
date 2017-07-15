@@ -10,6 +10,7 @@ use ieee.numeric_std.all;
 
 use work.queue_pkg.all;
 use work.fail_pkg.all;
+use work.message_types_pkg.all;
 context work.com_context;
 
 package bus_pkg is
@@ -24,15 +25,8 @@ package bus_pkg is
     p_fail_log : fail_log_t;
   end record;
 
-  type bus_access_type_t is (read_access, write_access);
-  type bus_request_t is record
-    access_type : bus_access_type_t;
-    address     : std_logic_vector;
-    data        : std_logic_vector;
-    byte_enable : std_logic_vector;
-  end record bus_request_t;
-
-  procedure decode (variable request_msg : inout msg_t; variable bus_request : inout bus_request_t);
+  constant bus_write_msg : message_type_t := new_message_type("write bus");
+  constant bus_read_msg : message_type_t := new_message_type("read bus");
 
   impure function new_bus(data_length, address_length : natural; byte_length : natural := 8) return bus_t;
   impure function data_length(bus_handle : bus_t) return natural;
@@ -124,15 +118,6 @@ package bus_pkg is
 end package;
 
 package body bus_pkg is
-  procedure decode (variable request_msg : inout msg_t; variable bus_request : inout bus_request_t) is
-  begin
-    bus_request.access_type := bus_access_type_t'val(integer'(pop(request_msg.data)));
-    bus_request.address := pop_std_ulogic_vector(request_msg.data);
-    if bus_request.access_type = write_access then
-      bus_request.data := pop_std_ulogic_vector(request_msg.data);
-      bus_request.byte_enable := pop_std_ulogic_vector(request_msg.data);
-    end if;
-  end;
 
   impure function new_bus(data_length, address_length : natural; byte_length : natural := 8) return bus_t is
   begin
@@ -179,7 +164,7 @@ package body bus_pkg is
     variable full_address : std_logic_vector(bus_handle.p_address_length-1 downto 0) := (others => '0');
     variable full_byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
   begin
-    push(request_msg.data, bus_access_type_t'pos(write_access));
+    push_message_type(request_msg.data, bus_write_msg);
 
     full_address(address'length-1 downto 0) := address;
     push_std_ulogic_vector(request_msg.data, full_address);
@@ -268,7 +253,7 @@ package body bus_pkg is
     alias request_msg : msg_t is reference;
   begin
     request_msg := create;
-    push(request_msg.data, bus_access_type_t'pos(read_access));
+    push_message_type(request_msg.data, bus_read_msg);
     full_address(address'length-1 downto 0) := address;
     push_std_ulogic_vector(request_msg.data, full_address);
     send(event, bus_handle.p_actor, request_msg);

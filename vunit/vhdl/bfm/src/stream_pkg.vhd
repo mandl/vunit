@@ -40,8 +40,8 @@ package stream_pkg is
                          expected : std_logic_vector;
                          msg : string := "");
 
-  constant stream_write_msg : natural := new_message_type("stream write");
-  constant stream_read_msg : natural := new_message_type("stream read");
+  constant stream_write_msg : message_type_t := new_message_type("stream write");
+  constant stream_read_msg : message_type_t := new_message_type("stream read");
 
 end package;
 
@@ -62,7 +62,7 @@ package body stream_pkg is
     variable msg : msg_t := create;
     constant normalized_data : std_logic_vector(data'length-1 downto 0) := data;
   begin
-    push(msg.data, stream_write_msg);
+    push_message_type(msg.data, stream_write_msg);
     push_std_ulogic_vector(msg.data, normalized_data);
     send(event, stream.p_actor, msg);
   end;
@@ -74,7 +74,7 @@ package body stream_pkg is
     variable reply_msg : msg_t;
   begin
     msg := create;
-    push(msg.data, stream_read_msg);
+    push_message_type(msg.data, stream_read_msg);
     send(event, stream.p_actor, msg);
     receive_reply(event, msg, reply_msg);
     data := pop_std_ulogic_vector(reply_msg.data);

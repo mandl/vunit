@@ -13,6 +13,7 @@ use work.queue_pkg.all;
 use work.bus_pkg.all;
 use work.fail_pkg.all;
 use work.axi_private_pkg.all;
+use work.message_types_pkg.all;
 context work.com_context;
 
 entity axi_lite_master is
@@ -49,60 +50,60 @@ architecture a of axi_lite_master is
 begin
   main : process
     variable request_msg, reply_msg : msg_t;
-    variable bus_request : bus_request_t(address(awaddr'range), data(wdata'range),
-                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
+    variable msg_type : message_type_t;
     variable w_done, aw_done : boolean;
   begin
     loop
       receive(event, bus_handle.p_actor, request_msg);
-      decode(request_msg, bus_request);
+      msg_type := pop_message_type(request_msg.data);
 
-      case bus_request.access_type is
-        when read_access =>
-          araddr <= bus_request.address;
-          arvalid <= '1';
-          wait until (arvalid and arready) = '1' and rising_edge(aclk);
-          arvalid <= '0';
+      if msg_type = bus_read_msg then
+        araddr <= pop_std_ulogic_vector(request_msg.data);
+        arvalid <= '1';
+        wait until (arvalid and arready) = '1' and rising_edge(aclk);
+        arvalid <= '0';
 
-          rready <= '1';
-          wait until (rvalid and rready) = '1' and rising_edge(aclk);
-          rready <= '0';
-          check_axi_resp(bus_handle, rresp, axi_resp_okay, "rresp");
+        rready <= '1';
+        wait until (rvalid and rready) = '1' and rising_edge(aclk);
+        rready <= '0';
+        check_axi_resp(bus_handle, rresp, axi_resp_okay, "rresp");
 
-          reply_msg := create;
-          push_std_ulogic_vector(reply_msg.data, rdata);
-          reply(event, request_msg, reply_msg);
-          delete(request_msg);
+        reply_msg := create;
+        push_std_ulogic_vector(reply_msg.data, rdata);
+        reply(event, request_msg, reply_msg);
+        delete(request_msg);
 
-        when write_access =>
-          awaddr <= bus_request.address;
-          wdata <= bus_request.data;
-          wstrb <= bus_request.byte_enable;
+      elsif msg_type = bus_write_msg then
+        awaddr <= pop_std_ulogic_vector(request_msg.data);
+        wdata <= pop_std_ulogic_vector(request_msg.data);
+        wstrb <= pop_std_ulogic_vector(request_msg.data);
 
-          wvalid <= '1';
-          awvalid <= '1';
+        wvalid <= '1';
+        awvalid <= '1';
 
-          w_done := false;
-          aw_done := false;
-          while not (w_done and aw_done) loop
-            wait until ((awvalid and awready) = '1' or (wvalid and wready) = '1') and rising_edge(aclk);
+        w_done := false;
+        aw_done := false;
+        while not (w_done and aw_done) loop
+          wait until ((awvalid and awready) = '1' or (wvalid and wready) = '1') and rising_edge(aclk);
 
-            if (awvalid and awready) = '1' then
-              awvalid <= '0';
-              aw_done := true;
-            end if;
+          if (awvalid and awready) = '1' then
+            awvalid <= '0';
+            aw_done := true;
+          end if;
 
-            if (wvalid and wready) = '1' then
-              wvalid <= '0';
-              w_done := true;
-            end if;
-          end loop;
+          if (wvalid and wready) = '1' then
+            wvalid <= '0';
+            w_done := true;
+          end if;
+        end loop;
 
-          bready <= '1';
-          wait until (bvalid and bready) = '1' and rising_edge(aclk);
-          bready <= '0';
-          check_axi_resp(bus_handle, bresp, axi_resp_okay, "bresp");
-      end case;
+        bready <= '1';
+        wait until (bvalid and bready) = '1' and rising_edge(aclk);
+        bready <= '0';
+        check_axi_resp(bus_handle, bresp, axi_resp_okay, "bresp");
+      else
+        unexpected_message_type(msg_type);
+      end if;
     end loop;
   end process;
 end architecture;

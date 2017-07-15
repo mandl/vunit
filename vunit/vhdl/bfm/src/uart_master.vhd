@@ -48,10 +48,10 @@ begin
 
     variable msg : msg_t;
     variable baud_rate : natural := uart.p_baud_rate;
-    variable msg_type : natural;
+    variable msg_type : message_type_t;
   begin
     receive(event, uart.p_stream.p_actor, msg);
-    msg_type := pop(msg.data);
+    msg_type := pop_message_type(msg.data);
 
     if msg_type = stream_write_msg then
         uart_send(pop_std_ulogic_vector(msg.data), tx, baud_rate);
@@ -60,7 +60,7 @@ begin
       baud_rate := pop(msg.data);
 
     else
-      unexpected_message_type(uart.p_stream.p_fail_log, msg_type);
+      unexpected_message_type(msg_type);
     end if;
   end process;
 

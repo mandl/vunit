@@ -8,6 +8,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 use work.queue_pkg.all;
+use work.message_types_pkg.all;
 context work.com_context;
 
 package axi_pkg is
@@ -58,13 +59,12 @@ package axi_pkg is
   -- 2. uses max arsize supported by data width
   procedure enable_well_behaved_check(signal event : inout event_t; axi_slave : axi_slave_t);
 
-  -- Private
-  type axi_message_type_t is (
-    msg_disable_fail_on_error,
-    msg_set_address_channel_fifo_depth,
-    msg_set_write_response_fifo_depth,
-    msg_set_address_channel_stall_probability,
-    msg_enable_well_behaved_check);
+  constant axi_slave_disable_fail_on_error_msg : message_type_t := new_message_type("axi slave disable fail on error");
+  constant axi_slave_set_address_channel_fifo_depth_msg : message_type_t := new_message_type("axi slave set address channel fifo depth");
+  constant axi_slave_set_write_response_fifo_depth_msg : message_type_t := new_message_type("set write response fifo depth");
+  constant axi_slave_set_address_channel_stall_probability_msg : message_type_t := new_message_type("axi slave set address channel stall probability");
+  constant axi_slave_enable_well_behaved_check_msg : message_type_t := new_message_type("axi slave enable well behaved check");
+
 end package;
 
 package body axi_pkg is
@@ -77,7 +77,7 @@ package body axi_pkg is
     variable request_msg, reply_msg : msg_t;
   begin
     request_msg := create;
-    push(request_msg.data, axi_message_type_t'pos(msg_disable_fail_on_error));
+    push_message_type(request_msg.data, axi_slave_disable_fail_on_error_msg);
     request(event, axi_slave.p_actor, request_msg, reply_msg);
     error_queue := pop_queue_ref(reply_msg.data);
     delete(reply_msg);
@@ -88,7 +88,7 @@ package body axi_pkg is
     variable ack : boolean;
   begin
     request_msg := create;
-    push(request_msg.data, axi_message_type_t'pos(msg_set_address_channel_fifo_depth));
+    push_message_type(request_msg.data, axi_slave_set_address_channel_fifo_depth_msg);
     push(request_msg.data, depth);
     request(event, axi_slave.p_actor, request_msg, ack);
     assert ack report "Failed on disable_fail_on_error command";
@@ -99,7 +99,7 @@ package body axi_pkg is
     variable ack : boolean;
   begin
     request_msg := create;
-    push(request_msg.data, axi_message_type_t'pos(msg_set_write_response_fifo_depth));
+    push_message_type(request_msg.data, axi_slave_set_write_response_fifo_depth_msg);
     push(request_msg.data, depth);
     request(event, axi_slave.p_actor, request_msg, ack);
     assert ack report "Failed on set_write_response_fifo_depth command";
@@ -110,7 +110,7 @@ package body axi_pkg is
     variable ack : boolean;
   begin
     request_msg := create;
-    push(request_msg.data, axi_message_type_t'pos(msg_set_address_channel_stall_probability));
+    push_message_type(request_msg.data, axi_slave_set_address_channel_stall_probability_msg);
     push_real(request_msg.data, probability);
     request(event, axi_slave.p_actor, request_msg, ack);
     assert ack report "Failed on set_address_channel_stall_probability command";
@@ -121,7 +121,7 @@ package body axi_pkg is
     variable ack : boolean;
   begin
     request_msg := create;
-    push(request_msg.data, axi_message_type_t'pos(msg_enable_well_behaved_check));
+    push_message_type(request_msg.data, axi_slave_enable_well_behaved_check_msg);
     request(event, axi_slave.p_actor, request_msg, ack);
     assert ack report "Failed on msg_enable_well_behaved_check command";
   end;

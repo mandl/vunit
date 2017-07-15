@@ -30,10 +30,10 @@ begin
 
   main : process
     variable reply_msg, msg : msg_t;
-    variable msg_type : natural;
+    variable msg_type : message_type_t;
   begin
     receive(event, uart.p_stream.p_actor, msg);
-    msg_type := pop(msg.data);
+    msg_type := pop_message_type(msg.data);
 
     if msg_type = uart_set_baud_rate_msg then
       baud_rate <= pop(msg.data);
@@ -48,7 +48,7 @@ begin
       reply(event, msg, reply_msg);
 
     else
-      unexpected_message_type(uart.p_stream.p_fail_log, msg_type);
+      unexpected_message_type(msg_type);
     end if;
 
   end process;
