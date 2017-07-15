@@ -21,26 +21,26 @@ entity axi_lite_master is
     aclk : in std_logic;
 
     arready : in std_logic;
-    arvalid : out std_logic;
-    araddr : out std_logic_vector;
+    arvalid : out std_logic := '0';
+    araddr : out std_logic_vector(address_length(bus_handle)-1 downto 0) := (others => '0');
 
-    rready : out std_logic;
+    rready : out std_logic := '0';
     rvalid : in std_logic;
-    rdata : in std_logic_vector;
+    rdata : in std_logic_vector(data_length(bus_handle)-1 downto 0);
     rresp : in std_logic_vector(1 downto 0);
 
     awready : in std_logic;
-    awvalid : out std_logic;
-    awaddr : out std_logic_vector;
+    awvalid : out std_logic := '0';
+    awaddr : out std_logic_vector(address_length(bus_handle)-1 downto 0) := (others => '0');
 
     wready : in std_logic;
-    wvalid : out std_logic;
-    wdata : out std_logic_vector;
-    wstrb : out std_logic_vector;
+    wvalid : out std_logic := '0';
+    wdata : out std_logic_vector(data_length(bus_handle)-1 downto 0) := (others => '0');
+    wstrb : out std_logic_vector(byte_enable_length(bus_handle)-1 downto 0) := (others => '0');
 
     bvalid : in std_logic;
     bready : out std_logic;
-    bresp : in std_logic_vector(1 downto 0));
+    bresp : in std_logic_vector(1 downto 0) := axi_resp_ok);
 end entity;
 
 architecture a of axi_lite_master is

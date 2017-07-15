@@ -21,10 +21,10 @@ entity ram_master is
   port (
     clk : in std_logic;
     en : out std_logic := '0';
-    we : out std_logic_vector;
-    addr : out std_logic_vector;
-    wdata : out std_logic_vector;
-    rdata : in std_logic_vector
+    we : out std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
+    addr : out std_logic_vector(address_length(bus_handle)-1 downto 0);
+    wdata : out std_logic_vector(data_length(bus_handle)-1 downto 0);
+    rdata : in std_logic_vector(data_length(bus_handle)-1 downto 0)
     );
 end entity;
 
