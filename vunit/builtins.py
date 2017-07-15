@@ -45,8 +45,11 @@ class Builtins(object):
         """
         if self._vhdl_standard != '2008':
             raise RuntimeError("Data types only supports vhdl 2008")
+        supports_context = self._simulator_factory.supports_vhdl_2008_contexts()
 
-        self._vunit_lib.add_source_files(join(VHDL_PATH, "data_types", "src", "*.vhd"))
+        for file_name in glob(join(VHDL_PATH, "data_types", "src", "*.vhd")):
+            if supports_context or not file_name.endswith("_context.vhd"):
+                self._vunit_lib.add_source_file(file_name)
 
     def _add_random(self):
         """
