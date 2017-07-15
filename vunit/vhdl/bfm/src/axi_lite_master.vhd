@@ -36,7 +36,7 @@ entity axi_lite_master is
     wready : in std_logic;
     wvalid : out std_logic;
     wdata : out std_logic_vector;
-    wstb : out std_logic_vector;
+    wstrb : out std_logic_vector;
 
     bvalid : in std_logic;
     bready : out std_logic;
@@ -74,7 +74,7 @@ begin
         when write_access =>
           awaddr <= bus_request.address;
           wdata <= bus_request.data;
-          wstb <= (wstb'range => '1');
+          wstrb <= (wstrb'range => '1');
 
           wvalid <= '1';
           awvalid <= '1';

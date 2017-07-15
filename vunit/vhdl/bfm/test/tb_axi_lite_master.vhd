@@ -42,7 +42,7 @@ architecture a of tb_axi_lite_master is
   signal wready  : std_logic := '0';
   signal wvalid  : std_logic;
   signal wdata   : std_logic_vector(15 downto 0);
-  signal wstb    : std_logic_vector(1 downto 0);
+  signal wstrb   : std_logic_vector(1 downto 0);
 
   signal bvalid  : std_logic := '0';
   signal bready  : std_logic;
@@ -107,7 +107,7 @@ begin
       wait until (wready and wvalid) = '1' and rising_edge(clk);
       wready <= '0';
       check_equal(wdata, std_logic_vector'(x"1122"), "wdata");
-      check_equal(wstb, std_logic_vector'("11"), "wstb");
+      check_equal(wstrb, std_logic_vector'("11"), "wstrb");
 
       bvalid <= '1';
       bresp <= axi_resp_ok;
@@ -152,7 +152,7 @@ begin
           wait until (wready and wvalid) = '1' and rising_edge(clk);
           wready <= '0';
           check_equal(wdata, rnd.RandSlv(wdata'length), "wdata");
-          check_equal(wstb, std_logic_vector'("11"), "wstb");
+          check_equal(wstrb, std_logic_vector'("11"), "wstrb");
 
           bvalid <= '1';
           bresp <= axi_resp_ok;
@@ -182,7 +182,7 @@ begin
       wready  => wready,
       wvalid  => wvalid,
       wdata   => wdata,
-      wstb    => wstb,
+      wstrb   => wstrb,
       bvalid  => bvalid,
       bready  => bready,
       bresp   => bresp);
