@@ -6,6 +6,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 use work.queue_pkg.all;
 use work.fail_pkg.all;
@@ -19,6 +20,7 @@ package bus_pkg is
     p_actor : actor_t;
     p_data_length : natural;
     p_address_length : natural;
+    p_byte_length : natural;
     p_fail_log : fail_log_t;
   end record;
 
@@ -27,18 +29,30 @@ package bus_pkg is
     access_type : bus_access_type_t;
     address     : std_logic_vector;
     data        : std_logic_vector;
+    byte_enable : std_logic_vector;
   end record bus_request_t;
 
   procedure decode (variable request_msg : inout msg_t; variable bus_request : inout bus_request_t);
 
-  impure function new_bus(data_length, address_length : natural; name : string := "") return bus_t;
+  impure function new_bus(data_length, address_length : natural; byte_length : natural := 8) return bus_t;
   impure function data_length(bus_handle : bus_t) return natural;
   impure function address_length(bus_handle : bus_t) return natural;
+  impure function byte_length(bus_handle : bus_t) return natural;
+  impure function byte_enable_length(bus_handle : bus_t) return natural;
 
   procedure write_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
-                      constant data : std_logic_vector);
+                      constant data : std_logic_vector;
+                      -- default byte enable is all bytes
+                      constant byte_enable : std_logic_vector := "");
+
+  procedure write_bus(signal event : inout event_t;
+                      constant bus_handle : bus_t;
+                      constant address : natural;
+                      constant data : std_logic_vector;
+                      -- default byte enable is all bytes
+                      constant byte_enable : std_logic_vector := "");
 
   -- Non blocking read with delayed reply
   procedure read_bus(signal event : inout event_t;
@@ -95,15 +109,17 @@ package body bus_pkg is
     bus_request.access_type := bus_access_type_t'val(integer'(pop(request_msg.data)));
     bus_request.address := pop_std_ulogic_vector(request_msg.data);
     if bus_request.access_type = write_access then
-        bus_request.data := pop_std_ulogic_vector(request_msg.data);
+      bus_request.data := pop_std_ulogic_vector(request_msg.data);
+      bus_request.byte_enable := pop_std_ulogic_vector(request_msg.data);
     end if;
   end;
 
-  impure function new_bus(data_length, address_length : natural; name : string := "") return bus_t is
+  impure function new_bus(data_length, address_length : natural; byte_length : natural := 8) return bus_t is
   begin
-    return (p_actor => create(name),
+    return (p_actor => create,
             p_data_length => data_length,
             p_address_length => address_length,
+            p_byte_length => byte_length,
             p_fail_log => new_fail_log);
   end;
 
@@ -117,21 +133,54 @@ package body bus_pkg is
     return bus_handle.p_address_length;
   end;
 
+  impure function byte_length(bus_handle : bus_t) return natural is
+  begin
+    return bus_handle.p_byte_length;
+  end;
+
+  impure function byte_enable_length(bus_handle : bus_t) return natural is
+  begin
+    return (bus_handle.p_data_length + bus_handle.p_byte_length - 1) / bus_handle.p_byte_length;
+  end;
+
   procedure write_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
-                      constant data : std_logic_vector) is
+                      constant data : std_logic_vector;
+                      -- default byte enable is all bytes
+                      constant byte_enable : std_logic_vector := "") is
     variable request_msg : msg_t := create;
     variable full_data : std_logic_vector(bus_handle.p_data_length-1 downto 0) := (others => '0');
     variable full_address : std_logic_vector(bus_handle.p_address_length-1 downto 0) := (others => '0');
+    variable full_byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
   begin
     push(request_msg.data, bus_access_type_t'pos(write_access));
+
     full_address(address'length-1 downto 0) := address;
     push_std_ulogic_vector(request_msg.data, full_address);
+
     full_data(data'length-1 downto 0) := data;
     push_std_ulogic_vector(request_msg.data, full_data);
+
+    if byte_enable = "" then
+      full_byte_enable := (others => '1');
+    else
+      full_byte_enable(byte_enable'length-1 downto 0) := byte_enable;
+    end if;
+    push_std_ulogic_vector(request_msg.data, full_byte_enable);
+
     send(event, bus_handle.p_actor, request_msg);
   end procedure;
+
+  procedure write_bus(signal event : inout event_t;
+                      constant bus_handle : bus_t;
+                      constant address : natural;
+                      constant data : std_logic_vector;
+                      -- default byte enable is all bytes
+                      constant byte_enable : std_logic_vector := "") is
+  begin
+    write_bus(event, bus_handle, std_logic_vector(to_unsigned(address, 32)), data, byte_enable);
+  end;
 
   procedure check_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;

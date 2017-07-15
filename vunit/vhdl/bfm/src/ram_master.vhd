@@ -34,7 +34,8 @@ architecture a of ram_master is
 begin
   main : process
     variable request_msg : msg_t;
-    variable bus_request : bus_request_t(address(addr'range), data(wdata'range));
+    variable bus_request : bus_request_t(address(addr'range), data(wdata'range),
+                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
   begin
     receive(event, bus_handle.p_actor, request_msg);
     decode(request_msg, bus_request);

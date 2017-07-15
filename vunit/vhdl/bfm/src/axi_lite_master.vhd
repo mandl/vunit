@@ -47,9 +47,8 @@ architecture a of axi_lite_master is
 begin
   main : process
     variable request_msg, reply_msg : msg_t;
-    --TODO: Assumes same length address buses
-    variable bus_request : bus_request_t(address(awaddr'range), data(wdata'range));
-
+    variable bus_request : bus_request_t(address(awaddr'range), data(wdata'range),
+                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
     variable w_done, aw_done : boolean;
   begin
     loop

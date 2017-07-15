@@ -41,6 +41,14 @@ begin
       write_bus(event, bus_handle, x"4", x"00112233");
       write_bus(event, bus_handle, x"00000008", x"112233");
 
+    elsif run("test write_bus with byte_enable") then
+      alloc := allocate(memory, 12, permissions => write_only);
+      set_permissions(memory, base_address(alloc), no_access);
+      set_expected_byte(memory, base_address(alloc)+1, 16#33#);
+      set_permissions(memory, base_address(alloc)+2, no_access);
+      set_expected_byte(memory, base_address(alloc)+3, 16#11#);
+      write_bus(event, bus_handle, base_address(alloc), x"11223344", byte_enable => "1010");
+
     elsif run("test read_bus") then
       alloc := allocate(memory, 8, permissions => read_only);
       write_word(memory, base_address(alloc), x"00112233", ignore_permissions => True);
@@ -87,8 +95,10 @@ begin
   memory_model : process
     variable request_msg, reply_msg : msg_t;
     variable bus_request : bus_request_t(address(address_length(bus_handle)-1 downto 0),
-                                         data(data_length(bus_handle)-1 downto 0));
+                                         data(data_length(bus_handle)-1 downto 0),
+                                         byte_enable(byte_enable_length(bus_handle)-1 downto 0));
     variable data  : std_logic_vector(data_length(bus_handle)-1 downto 0);
+    constant blen : natural := byte_length(bus_handle);
   begin
     loop
       receive(event, bus_handle.p_actor, request_msg);
@@ -101,7 +111,13 @@ begin
           push_std_ulogic_vector(reply_msg.data, data);
           reply(event, request_msg, reply_msg);
         when write_access =>
-          write_word(memory, to_integer(unsigned(bus_request.address)), bus_request.data);
+          for i in bus_request.byte_enable'range loop
+            -- @TODO byte_enable on memory_t?
+            if bus_request.byte_enable(i) = '1' then
+              write_byte(memory, to_integer(unsigned(bus_request.address))+i,
+                         to_integer(unsigned(bus_request.data(blen*(i+1)-1 downto blen*i))));
+            end if;
+          end loop;
       end case;
     end loop;
   end process;
