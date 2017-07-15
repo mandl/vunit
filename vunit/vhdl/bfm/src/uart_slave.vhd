@@ -61,7 +61,7 @@ begin
       constant time_per_half_bit : time := (10**9 / (2*baud_rate)) * 1 ns;
     begin
       wait for time_per_half_bit; -- middle of start bit
-      assert rx = '0';
+      assert rx = not uart.p_idle_state;
       wait for time_per_bit; -- skip start bit
 
       for i in 0 to data'length-1 loop
@@ -69,13 +69,13 @@ begin
         wait for time_per_bit;
       end loop;
 
-      assert rx = '1';
+      assert rx = uart.p_idle_state;
       wait for time_per_half_bit;
     end procedure;
 
     variable data : std_logic_vector(8-1 downto 0);
   begin
-    wait on rx until rx = '0';
+    wait on rx until rx = not uart.p_idle_state;
     uart_recv(data, rx, baud_rate);
     push_std_ulogic_vector(data_queue, data);
     local_event <= '1';

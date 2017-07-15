@@ -4,6 +4,9 @@
 --
 -- Copyright (c) 2017, Lars Asplund lars.anders.asplund@gmail.com
 
+library ieee;
+use ieee.std_logic_1164.all;
+
 context work.com_context;
 use work.stream_pkg.all;
 use work.integer_vector_ptr_pkg.all;
@@ -14,11 +17,13 @@ package uart_pkg is
   type uart_master_t is record
     stream : stream_master_t;
     p_baud_rate : natural;
+    p_idle_state : std_logic;
   end record;
 
   type uart_slave_t is record
     stream : stream_slave_t;
     p_baud_rate : natural;
+    p_idle_state : std_logic;
   end record;
 
   -- Set the baud rate [bits/s]
@@ -31,8 +36,11 @@ package uart_pkg is
                           baud_rate : natural);
 
   constant default_baud_rate : natural := 115200;
-  impure function new_uart_master(initial_baud_rate : natural := default_baud_rate) return uart_master_t;
-  impure function new_uart_slave(initial_baud_rate : natural := default_baud_rate) return uart_slave_t;
+  constant default_idle_state : std_logic := '1';
+  impure function new_uart_master(initial_baud_rate : natural := default_baud_rate;
+                                  idle_state : std_logic := default_idle_state) return uart_master_t;
+  impure function new_uart_slave(initial_baud_rate : natural := default_baud_rate;
+                                 idle_state : std_logic := default_idle_state) return uart_slave_t;
 
   impure function as_stream(uart_master : uart_master_t) return stream_master_t;
   impure function as_stream(uart_slave : uart_slave_t) return stream_slave_t;
@@ -42,14 +50,20 @@ end package;
 
 package body uart_pkg is
 
-  impure function new_uart_master(initial_baud_rate : natural := default_baud_rate) return uart_master_t is
+  impure function new_uart_master(initial_baud_rate : natural := default_baud_rate;
+                                  idle_state : std_logic := default_idle_state) return uart_master_t is
   begin
-    return (stream => new_stream_master, p_baud_rate => initial_baud_rate);
+    return (stream => new_stream_master,
+            p_baud_rate => initial_baud_rate,
+            p_idle_state => idle_state);
   end;
 
-  impure function new_uart_slave(initial_baud_rate : natural := default_baud_rate) return uart_slave_t is
+  impure function new_uart_slave(initial_baud_rate : natural := default_baud_rate;
+                                 idle_state : std_logic := default_idle_state) return uart_slave_t is
   begin
-    return (stream => new_stream_slave, p_baud_rate => initial_baud_rate);
+    return (stream => new_stream_slave,
+            p_baud_rate => initial_baud_rate,
+            p_idle_state => idle_state);
   end;
 
   impure function as_stream(uart_master : uart_master_t) return stream_master_t is

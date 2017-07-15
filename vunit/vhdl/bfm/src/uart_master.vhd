@@ -19,7 +19,7 @@ entity uart_master is
   generic (
     uart : uart_master_t);
   port (
-    tx : out std_logic := '1');
+    tx : out std_logic := uart.p_idle_state);
 end entity;
 
 architecture a of uart_master is
@@ -39,11 +39,11 @@ begin
 
     begin
       debug("Sending " & to_string(data));
-      send_bit('0');
+      send_bit(not uart.p_idle_state);
       for i in 0 to data'length-1 loop
         send_bit(data(i));
       end loop;
-      send_bit('1');
+      send_bit(uart.p_idle_state);
     end procedure;
 
     variable msg : msg_t;
