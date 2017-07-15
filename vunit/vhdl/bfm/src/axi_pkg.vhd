@@ -26,7 +26,7 @@ package axi_pkg is
     p_actor : actor_t;
   end record;
 
-  impure function new_axi_slave (name : string := "") return axi_slave_t;
+  impure function new_axi_slave return axi_slave_t;
 
   -- Disables failure on internal errors that are instead pushed to an error queue
   -- Used for testing the BFM error messages
@@ -65,9 +65,9 @@ package axi_pkg is
 end package;
 
 package body axi_pkg is
-  impure function new_axi_slave (name : string := "") return axi_slave_t is
+  impure function new_axi_slave return axi_slave_t is
   begin
-    return (p_actor => create(name));
+    return (p_actor => create);
   end;
 
   procedure disable_fail_on_error(signal event : inout event_t; axi_slave : axi_slave_t; variable error_queue : inout queue_t) is
