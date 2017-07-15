@@ -40,6 +40,8 @@ package bus_pkg is
   impure function byte_length(bus_handle : bus_t) return natural;
   impure function byte_enable_length(bus_handle : bus_t) return natural;
 
+  impure function to_address(constant bus_handle : bus_t; address : natural) return std_logic_vector;
+
   procedure write_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
@@ -60,6 +62,11 @@ package bus_pkg is
                      constant address : std_logic_vector;
                      variable reference : inout bus_reference_t);
 
+  procedure read_bus(signal event : inout event_t;
+                     constant bus_handle : bus_t;
+                     constant address : natural;
+                     variable reference : inout bus_reference_t);
+
   -- Await read bus reply
   procedure await_read_bus_reply(signal event : inout event_t;
                                  variable reference : inout bus_reference_t;
@@ -73,11 +80,24 @@ package bus_pkg is
                       constant mask : std_logic_vector := "";
                       constant msg : string := "");
 
+  procedure check_bus(signal event : inout event_t;
+                      constant bus_handle : bus_t;
+                      constant address : natural;
+                      constant expected : std_logic_vector;
+                      constant mask : std_logic_vector := "";
+                      constant msg : string := "");
+
   -- Blocking read with immediate reply
   procedure read_bus(signal event : inout event_t;
                      constant bus_handle : bus_t;
                      constant address : std_logic_vector;
                      variable data : inout std_logic_vector);
+
+  procedure read_bus(signal event : inout event_t;
+                     constant bus_handle : bus_t;
+                     constant address : natural;
+                     variable data : inout std_logic_vector);
+
 
   -- Wait until a read from address equals the value in the positions defined by the mask bit
   -- If timeout is reached error with msg
@@ -143,6 +163,11 @@ package body bus_pkg is
     return (bus_handle.p_data_length + bus_handle.p_byte_length - 1) / bus_handle.p_byte_length;
   end;
 
+  impure function to_address(constant bus_handle : bus_t; address : natural) return std_logic_vector is
+  begin
+    return std_logic_vector(to_unsigned(address, address_length(bus_handle)));
+  end;
+
   procedure write_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
@@ -179,7 +204,7 @@ package body bus_pkg is
                       -- default byte enable is all bytes
                       constant byte_enable : std_logic_vector := "") is
   begin
-    write_bus(event, bus_handle, std_logic_vector(to_unsigned(address, 32)), data, byte_enable);
+    write_bus(event, bus_handle, to_address(bus_handle, address), data, byte_enable);
   end;
 
   procedure check_bus(signal event : inout event_t;
@@ -224,6 +249,16 @@ package body bus_pkg is
     end if;
   end procedure;
 
+  procedure check_bus(signal event : inout event_t;
+                      constant bus_handle : bus_t;
+                      constant address : natural;
+                      constant expected : std_logic_vector;
+                      constant mask : std_logic_vector := "";
+                      constant msg : string := "") is
+  begin
+    check_bus(event, bus_handle, to_address(bus_handle, address), expected, mask, msg);
+  end;
+
   -- Non blocking read with delayed reply
   procedure read_bus(signal event : inout event_t;
                      constant bus_handle : bus_t;
@@ -238,6 +273,14 @@ package body bus_pkg is
     push_std_ulogic_vector(request_msg.data, full_address);
     send(event, bus_handle.p_actor, request_msg);
   end procedure;
+
+  procedure read_bus(signal event : inout event_t;
+                     constant bus_handle : bus_t;
+                     constant address : natural;
+                     variable reference : inout bus_reference_t) is
+  begin
+    read_bus(event, bus_handle, to_address(bus_handle, address), reference);
+  end;
 
   -- Await read bus reply
   procedure await_read_bus_reply(signal event : inout event_t;
@@ -263,6 +306,14 @@ package body bus_pkg is
     await_read_bus_reply(event, reference, data);
   end procedure;
 
+
+  procedure read_bus(signal event : inout event_t;
+                     constant bus_handle : bus_t;
+                     constant address : natural;
+                     variable data : inout std_logic_vector) is
+  begin
+    read_bus(event, bus_handle, to_address(bus_handle, address), data);
+  end;
 
   procedure wait_until_read_equals(
     signal event : inout event_t;
