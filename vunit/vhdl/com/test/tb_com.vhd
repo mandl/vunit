@@ -34,8 +34,6 @@ begin
     variable receipt, receipt2, receipt3                                  : receipt_t;
     variable n_actors                                                     : natural;
     variable message                                                      : message_ptr_t;
-    variable reply_message                                                : message_ptr_t;
-    variable request_message                                              : message_ptr_t;
     variable t_start, t_stop                                              : time;
     variable ack                                                          : boolean;
     variable msg, msg2, request_msg, request_msg2, request_msg3, reply_msg : msg_t;
@@ -52,12 +50,16 @@ begin
       -- Create
       if run("Test that named actors can be created") then
         n_actors := num_of_actors;
-        check(create("actor") /= null_actor_c, "Failed to create named actor");
+        actor := create("actor");
+        check(actor /= null_actor_c, "Failed to create named actor");
+        check_equal(name(actor), "actor");
         check_equal(num_of_actors, n_actors + 1, "Expected one extra actor");
         check(create("other actor").id /= create("another actor").id, "Failed to create unique actors");
         check_equal(num_of_actors, n_actors + 3, "Expected two extra actors");
       elsif run("Test that no name actors can be created") then
-        check(create /= null_actor_c, "Failed to create no name actor");
+        actor := create;
+        check(actor /= null_actor_c, "Failed to create no name actor");
+        check_equal(name(actor), "");
       elsif run("Expected to fail: Test that two actors of the same name cannot be created") then
         actor := create("actor2");
         actor := create("actor2");
@@ -203,13 +205,15 @@ begin
       elsif run("Test that an actor can poll for incoming messages") then
         wait_for_message(net, self, status, 0 ns);
         check(status = timeout, "Expected timeout");
-        send(net, self, self, "hello again");
+        msg := create(self);
+        push_string(msg.data, "hello again");
+        send(net, self, msg);
         wait_for_message(net, self, status, 0 ns);
         check(status = ok, "Expected ok status");
-        message := get_message(self);
-        check(message.status = ok, "Expected no problems with receive");
-        check_equal(message.payload.all, "hello again");
-        check(message.sender = self, "Expected message from myself");
+        msg2 := get_message(self);
+        check(msg2.status = ok, "Expected no problems with receive");
+        check_equal(pop_string(msg2.data), "hello again");
+        check(msg2.sender = self, "Expected message from myself");
       elsif run("Expected to fail: Test that sending to a non-existing actor results in an error") then
         msg := create;
         push_string(msg.data, "hello");
@@ -371,29 +375,35 @@ begin
         server        := find("server4");
 
         t_start := now;
-        send(net, self, server, "request1", receipt);
-        wait_for_reply(net, self, receipt, status, 2 ns);
+        request_msg := create(self);
+        push_string(request_msg.data, "request1");
+        send(net, server, request_msg);
+        wait_for_reply(net, request_msg, status, 2 ns);
         check(status = timeout, "Expected timeout");
         check_equal(now - t_start, 2 ns);
 
         t_start         := now;
-        request_message := compose("request2", self);
-        send(net, server, request_message);
-        wait_for_reply(net, request_message, status, 2 ns);
+        request_msg := create;
+        push_string(request_msg.data, "request2");
+        send(net, server, request_msg);
+        wait_for_reply(net, request_msg, status, 2 ns);
         check(status = timeout, "Expected timeout");
         check_equal(now - t_start, 2 ns);
 
-        send(net, self, server, "request3", receipt);
-        wait_for_reply(net, self, receipt, status);
-        message := get_reply(self, receipt);
-        check_equal(message.payload.all, "reply3");
+        request_msg := create(self);
+        push_string(request_msg.data, "request3");
+        send(net, server, request_msg);
+        wait_for_reply(net, request_msg, status);
+        get_reply(request_msg, reply_msg);
+        check_equal(pop_string(reply_msg.data), "reply3");
 
         t_start         := now;
-        request_message := compose("request4", self);
-        send(net, server, request_message);
-        wait_for_reply(net, request_message, status);
-        get_reply(request_message, message);
-        check_equal(message.payload.all, "reply4");
+        request_msg := create;
+        push_string(request_msg.data, "request4");
+        send(net, server, request_msg);
+        wait_for_reply(net, request_msg, status);
+        get_reply(request_msg, reply_msg);
+        check_equal(pop_string(reply_msg.data), "reply4");
       elsif run("Test that an anonymous request can be made") then
         start_server5 <= true;
         server := find("server5");
@@ -419,16 +429,10 @@ begin
 
       -- Timeout
       elsif run("Expected to fail: Test that timeout on receive leads to an error") then
-        receive(net, self, message, 1 ns);
-      elsif run("Test that timeout errors can be suppressed") then
-        allow_timeout;
-        receive(net, self, message, 1 ns);
+        receive(net, self, msg, 1 ns);
 
       -- Deprecated APIs
       elsif run("Expected to fail: Test that use of deprecated API leads to an error") then
-        publish(net, self, "hello world", status);
-      elsif run("Test that deprecated errors can be suppressed") then
-        allow_deprecated;
         publish(net, self, "hello world", status);
       end if;
     end loop;
@@ -536,17 +540,21 @@ begin
 
   server4 : process is
     variable self            : actor_t;
-    variable request_message : message_ptr_t;
+    variable request_msg, reply_msg : msg_t;
   begin
     wait until start_server4;
     self := create("server4", 1);
 
-    receive(net, self, request_message);
-    receive(net, self, request_message);
-    receive(net, self, request_message);
-    reply(net, request_message, "reply3");
-    receive(net, self, request_message);
-    reply(net, request_message, "reply4");
+    receive(net, self, request_msg);
+    receive(net, self, request_msg);
+    receive(net, self, request_msg);
+    reply_msg := create;
+    push_string(reply_msg.data, "reply3");
+    reply(net, request_msg, reply_msg);
+    receive(net, self, request_msg);
+    reply_msg := create;
+    push_string(reply_msg.data, "reply4");
+    reply(net, request_msg, reply_msg);
     wait;
   end process server4;
 

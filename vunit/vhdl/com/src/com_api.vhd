@@ -193,6 +193,16 @@ package com_pkg is
     constant delete_from_inbox : in    boolean := true);
 
 
+  procedure wait_for_reply (
+    signal net       : inout network_t;
+    variable request_msg : inout msg_t;
+    variable status  : out   com_status_t;
+    constant timeout : in    time := max_timeout_c);
+  impure function get_message (receiver : actor_t) return msg_t;
+  procedure get_reply (variable request_msg : inout msg_t; variable reply_msg : inout msg_t);
+
+
+
   -----------------------------------------------------------------------------
   -- Subscriptions
   -----------------------------------------------------------------------------

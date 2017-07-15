@@ -22,7 +22,8 @@ end entity tb_com_deprecated;
 
 architecture test_fixture of tb_com_deprecated is
   signal hello_world_received, start_receiver, start_server,
-    start_server2, start_server3, start_server4, start_server5, start_subscribers : boolean := false;
+    start_server2, start_server3, start_server4, start_server5, start_server6,
+    start_subscribers : boolean := false;
   signal start_limited_inbox, limited_inbox_actor_done : boolean                  := false;
   signal hello_subscriber_received                     : std_logic_vector(1 to 2) := "ZZ";
 begin
@@ -114,6 +115,16 @@ begin
           check(message.sender = self, "Expected message from myself");
         end if;
         delete(message);
+      elsif run("Test that an actor can poll for incoming messages 2") then
+        wait_for_message(net, self, status, 0 ns);
+        check(status = timeout, "Expected timeout");
+        send(net, self, self, "hello again");
+        wait_for_message(net, self, status, 0 ns);
+        check(status = ok, "Expected ok status");
+        message := get_message(self);
+        check(message.status = ok, "Expected no problems with receive");
+        check_equal(message.payload.all, "hello again");
+        check(message.sender = self, "Expected message from myself");
       elsif run("Test that each sent message gets an increasing message number") then
         send(net, self, "", receipt);
         check(receipt.id = 1, "Expected first receipt id to be 1");
@@ -251,6 +262,34 @@ begin
         check(reply_message.status = timeout, "Expected timeout");
         check(now - t_start = 5 ns, "Expected timeout after 5 ns");
         delete(reply_message);
+      elsif run("Test waiting and getting a reply") then
+        start_server6 <= true;
+        server        := find("server6");
+
+        t_start := now;
+        send(net, self, server, "request1", receipt);
+        wait_for_reply(net, self, receipt, status, 2 ns);
+        check(status = timeout, "Expected timeout");
+        check_equal(now - t_start, 2 ns);
+
+        t_start         := now;
+        request_message := compose("request2", self);
+        send(net, server, request_message);
+        wait_for_reply(net, request_message, status, 2 ns);
+        check(status = timeout, "Expected timeout");
+        check_equal(now - t_start, 2 ns);
+
+        send(net, self, server, "request3", receipt);
+        wait_for_reply(net, self, receipt, status);
+        message := get_reply(self, receipt);
+        check_equal(message.payload.all, "reply3");
+
+        t_start         := now;
+        request_message := compose("request4", self);
+        send(net, server, request_message);
+        wait_for_reply(net, request_message, status);
+        get_reply(request_message, message);
+        check_equal(message.payload.all, "reply4");
       elsif run("Test that an anonymous request can be made") then
         start_server5 <= true;
         server := find("server5");
@@ -435,6 +474,22 @@ begin
 
     wait;
   end process server5;
+
+  server6 : process is
+    variable self            : actor_t;
+    variable request_message : message_ptr_t;
+  begin
+    wait until start_server6;
+    self := create("server6", 1);
+
+    receive(net, self, request_message);
+    receive(net, self, request_message);
+    receive(net, self, request_message);
+    reply(net, request_message, "reply3");
+    receive(net, self, request_message);
+    reply(net, request_message, "reply4");
+    wait;
+  end process server6;
 
   limited_inbox_actor : process is
     variable self, test_runner : actor_t;

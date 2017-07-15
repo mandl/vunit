@@ -290,7 +290,7 @@ package body com_pkg is
     messenger.send(msg.sender, receiver, mailbox_name, msg.request_id, encode(msg.data), receipt);
     msg.id       := receipt.id;
     msg.receiver := receiver;
-    msg.data := null_queue;
+    msg.data     := null_queue;
     notify(net);
   end;
 
@@ -307,24 +307,16 @@ package body com_pkg is
   procedure receive (
     signal net        : inout network_t;
     constant receiver : in    actor_t;
-    variable msg  : inout msg_t;
+    variable msg      : inout msg_t;
     constant timeout  : in    time := max_timeout_c) is
     variable status                  : com_status_t;
     variable started_with_full_inbox : boolean;
-    variable message : message_ptr_t;
   begin
     delete(msg);
     wait_for_message(net, receiver, status, timeout);
     check(no_error_status(status), status);
     started_with_full_inbox := messenger.is_full(receiver, inbox);
-    message                 := get_message(receiver);
-    msg.id := message.id;
-    msg.status := message.status;
-    msg.sender := message.sender;
-    msg.receiver := message.receiver;
-    msg.request_id := message.request_id;
-    msg.data := decode(message.payload.all);
-    delete(message);
+    msg                     := get_message(receiver);
     if started_with_full_inbox then
       notify(net);
     end if;
@@ -355,22 +347,22 @@ package body com_pkg is
     variable status       : com_status_t;
     variable source_actor : actor_t;
     variable mailbox      : mailbox_name_t;
-    variable message : message_ptr_t;
+    variable message      : message_ptr_t;
   begin
     delete(reply_msg);
 
     source_actor := request_msg.sender when request_msg.sender /= null_actor_c else request_msg.receiver;
-    mailbox      := inbox          when request_msg.sender /= null_actor_c else outbox;
+    mailbox      := inbox              when request_msg.sender /= null_actor_c else outbox;
 
     wait_for_reply_stash_message(net, source_actor, mailbox, request_msg.id, status, timeout);
     check(no_error_status(status), status);
-    message := get_reply_stash_message(source_actor);
-    reply_msg.id := message.id;
-    reply_msg.status := message.status;
-    reply_msg.sender := message.sender;
-    reply_msg.receiver := message.receiver;
+    message              := get_reply_stash_message(source_actor);
+    reply_msg.id         := message.id;
+    reply_msg.status     := message.status;
+    reply_msg.sender     := message.sender;
+    reply_msg.receiver   := message.receiver;
     reply_msg.request_id := message.request_id;
-    reply_msg.data := decode(message.payload.all);
+    reply_msg.data       := decode(message.payload.all);
     delete(message);
   end;
 
@@ -468,11 +460,11 @@ package body com_pkg is
 
 
   procedure request (
-    signal net               : inout network_t;
-    constant receiver        : in    actor_t;
+    signal net           : inout network_t;
+    constant receiver    : in    actor_t;
     variable request_msg : inout msg_t;
     variable reply_msg   : inout msg_t;
-    constant timeout         : in    time    := max_timeout_c) is
+    constant timeout     : in    time := max_timeout_c) is
     variable start : time;
   begin
     start := now;
@@ -481,11 +473,11 @@ package body com_pkg is
   end;
 
   procedure request (
-    signal net               : inout network_t;
-    constant receiver        : in    actor_t;
-    variable request_msg : inout msg_t;
-    variable positive_ack    : out   boolean;
-    constant timeout         : in    time    := max_timeout_c) is
+    signal net            : inout network_t;
+    constant receiver     : in    actor_t;
+    variable request_msg  : inout msg_t;
+    variable positive_ack : out   boolean;
+    constant timeout      : in    time := max_timeout_c) is
     variable start : time;
   begin
     start := now;
@@ -495,7 +487,7 @@ package body com_pkg is
 
   procedure acknowledge (
     signal net            : inout network_t;
-    variable request_msg      : inout msg_t;
+    variable request_msg  : inout msg_t;
     constant positive_ack : in    boolean := true;
     constant timeout      : in    time    := max_timeout_c) is
     variable reply_msg : msg_t;
@@ -507,7 +499,7 @@ package body com_pkg is
 
   procedure receive_reply (
     signal net            : inout network_t;
-    variable request_msg      : inout msg_t;
+    variable request_msg  : inout msg_t;
     variable positive_ack : out   boolean;
     constant timeout      : in    time := max_timeout_c) is
     variable reply_msg : msg_t;
@@ -600,6 +592,58 @@ package body com_pkg is
     reply := get_reply_stash_message(request.sender, delete_from_inbox);
   end;
 
+
+
+
+
+  procedure wait_for_reply (
+    signal net       : inout network_t;
+    variable request_msg : inout msg_t;
+    variable status  : out   com_status_t;
+    constant timeout : in    time := max_timeout_c) is
+    variable source_actor : actor_t;
+    variable mailbox      : mailbox_name_t;
+  begin
+    source_actor := request_msg.sender when request_msg.sender /= null_actor_c else request_msg.receiver;
+    mailbox      := inbox              when request_msg.sender /= null_actor_c else outbox;
+
+    wait_for_reply_stash_message(net, source_actor, mailbox, request_msg.id, status, timeout);
+  end;
+
+  impure function get_message (receiver : actor_t) return msg_t is
+    variable msg : msg_t;
+  begin
+    check(messenger.has_messages(receiver), null_message_error);
+
+    msg.status     := ok;
+    msg.id         := messenger.get_first_message_id(receiver);
+    msg.request_id := messenger.get_first_message_request_id(receiver);
+    msg.sender     := messenger.get_first_message_sender(receiver);
+    msg.receiver   := receiver;
+    msg.data       := decode(messenger.get_first_message_payload(receiver));
+    messenger.delete_first_envelope(receiver);
+
+    return msg;
+  end function get_message;
+
+  procedure get_reply (variable request_msg : inout msg_t; variable reply_msg : inout msg_t) is
+    variable source_actor : actor_t;
+    variable message      : message_ptr_t;
+  begin
+    source_actor := request_msg.sender when request_msg.sender /= null_actor_c else request_msg.receiver;
+
+    check(messenger.has_reply_stash_message(source_actor), null_message_error);
+    message := get_reply_stash_message(source_actor);
+    check(message.request_id = request_msg.id, unknown_request_id_error);
+    reply_msg.id         := message.id;
+    reply_msg.status     := message.status;
+    reply_msg.sender     := message.sender;
+    reply_msg.receiver   := message.receiver;
+    reply_msg.request_id := message.request_id;
+    reply_msg.data       := decode(message.payload.all);
+    delete(message);
+  end;
+
   -----------------------------------------------------------------------------
   -- Subscriptions
   -----------------------------------------------------------------------------
@@ -644,12 +688,12 @@ package body com_pkg is
   impure function pop(queue : queue_t) return msg_t is
     variable ret_val : msg_t := create;
   begin
-    ret_val.id := pop(queue);
-    ret_val.status := com_status_t'val(integer'(pop(queue)));
-    ret_val.sender.id := pop(queue);
+    ret_val.id          := pop(queue);
+    ret_val.status      := com_status_t'val(integer'(pop(queue)));
+    ret_val.sender.id   := pop(queue);
     ret_val.receiver.id := pop(queue);
-    ret_val.request_id := pop(queue);
-    ret_val.data := pop_queue_ref(queue);
+    ret_val.request_id  := pop(queue);
+    ret_val.data        := pop_queue_ref(queue);
 
     return ret_val;
   end;
