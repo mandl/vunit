@@ -46,7 +46,7 @@ begin
       send_bit(uart.p_idle_state);
     end procedure;
 
-    variable msg : msg_t;
+    variable msg, reply_msg : msg_t;
     variable baud_rate : natural := uart.p_baud_rate;
     variable msg_type : message_type_t;
   begin
@@ -58,6 +58,10 @@ begin
 
     elsif msg_type = uart_set_baud_rate_msg then
       baud_rate := pop(msg.data);
+
+    elsif msg_type = await_completion_msg then
+      reply_msg := create;
+      reply(event, msg, reply_msg);
 
     else
       unexpected_message_type(msg_type);

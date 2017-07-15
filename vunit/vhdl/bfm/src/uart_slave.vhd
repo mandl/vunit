@@ -70,7 +70,6 @@ begin
       end loop;
 
       assert rx = uart.p_idle_state;
-      wait for time_per_half_bit;
     end procedure;
 
     variable data : std_logic_vector(uart.p_data_length-1 downto 0);
