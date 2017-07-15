@@ -50,7 +50,7 @@ begin
     variable baud_rate : natural := uart.p_baud_rate;
     variable msg_type : natural;
   begin
-    receive(event, uart.stream.p_actor, msg);
+    receive(event, uart.p_stream.p_actor, msg);
     msg_type := pop(msg.data);
 
     if msg_type = stream_write_msg then
@@ -60,7 +60,7 @@ begin
       baud_rate := pop(msg.data);
 
     else
-      unexpected_message_type(uart.stream.p_fail_log, msg_type);
+      unexpected_message_type(uart.p_stream.p_fail_log, msg_type);
     end if;
   end process;
 

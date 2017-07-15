@@ -32,7 +32,7 @@ begin
     variable reply_msg, msg : msg_t;
     variable msg_type : natural;
   begin
-    receive(event, uart.stream.p_actor, msg);
+    receive(event, uart.p_stream.p_actor, msg);
     msg_type := pop(msg.data);
 
     if msg_type = uart_set_baud_rate_msg then
@@ -48,7 +48,7 @@ begin
       reply(event, msg, reply_msg);
 
     else
-      unexpected_message_type(uart.stream.p_fail_log, msg_type);
+      unexpected_message_type(uart.p_stream.p_fail_log, msg_type);
     end if;
 
   end process;
@@ -73,7 +73,7 @@ begin
       wait for time_per_half_bit;
     end procedure;
 
-    variable data : std_logic_vector(8-1 downto 0);
+    variable data : std_logic_vector(uart.p_data_length-1 downto 0);
   begin
     wait on rx until rx = not uart.p_idle_state;
     uart_recv(data, rx, baud_rate);

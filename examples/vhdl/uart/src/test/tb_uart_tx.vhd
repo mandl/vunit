@@ -34,7 +34,8 @@ architecture tb of tb_uart_tx is
   signal tdata : std_logic_vector(7 downto 0) := (others => '0');
 
   shared variable rnd_stimuli, rnd_expected : RandomPType;
-  constant uart_bfm : uart_slave_t := new_uart_slave(initial_baud_rate => baud_rate);
+  constant uart_bfm : uart_slave_t := new_uart_slave(initial_baud_rate => baud_rate,
+                                                     data_length => tdata'length);
   constant uart_stream : stream_slave_t := as_stream(uart_bfm);
 begin
 
