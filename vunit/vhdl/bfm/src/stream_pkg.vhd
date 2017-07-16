@@ -12,6 +12,7 @@ context work.com_context;
 use work.queue_pkg.all;
 use work.fail_pkg.all;
 use work.message_types_pkg.all;
+use work.sync_pkg.all;
 
 package stream_pkg is
   type stream_master_t is record
@@ -53,7 +54,6 @@ package stream_pkg is
                          expected : std_logic_vector;
                          msg : string := "");
 
-  constant await_completion_msg : message_type_t := new_message_type("await completion");
   constant stream_write_msg : message_type_t := new_message_type("stream write");
   constant stream_read_msg : message_type_t := new_message_type("stream read");
 
@@ -83,13 +83,8 @@ package body stream_pkg is
 
   procedure await_completion(signal event : inout event_t;
                              stream : stream_master_t) is
-    variable msg, reply_msg : msg_t;
   begin
-    msg := create;
-    push_message_type(msg.data, await_completion_msg);
-    send(event, stream.p_actor, msg);
-    receive_reply(event, msg, reply_msg);
-    delete(reply_msg);
+    await_completion(event, stream.p_actor);
   end;
 
   procedure read_stream(signal event : inout event_t;

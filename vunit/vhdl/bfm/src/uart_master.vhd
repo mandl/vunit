@@ -14,6 +14,7 @@ use vunit_lib.stream_pkg.all;
 use vunit_lib.uart_pkg.all;
 use vunit_lib.queue_pkg.all;
 use vunit_lib.message_types_pkg.all;
+use vunit_lib.sync_pkg.all;
 
 entity uart_master is
   generic (
@@ -46,23 +47,19 @@ begin
       send_bit(uart.p_idle_state);
     end procedure;
 
-    variable msg, reply_msg : msg_t;
+    variable msg : msg_t;
     variable baud_rate : natural := uart.p_baud_rate;
     variable msg_type : message_type_t;
   begin
     receive(event, uart.p_stream.p_actor, msg);
     msg_type := pop_message_type(msg.data);
 
-    if msg_type = stream_write_msg then
-        uart_send(pop_std_ulogic_vector(msg.data), tx, baud_rate);
+    handle_sync_message(event, msg_type, msg);
 
+    if msg_type = stream_write_msg then
+      uart_send(pop_std_ulogic_vector(msg.data), tx, baud_rate);
     elsif msg_type = uart_set_baud_rate_msg then
       baud_rate := pop(msg.data);
-
-    elsif msg_type = await_completion_msg then
-      reply_msg := create;
-      reply(event, msg, reply_msg);
-
     else
       unexpected_message_type(msg_type);
     end if;

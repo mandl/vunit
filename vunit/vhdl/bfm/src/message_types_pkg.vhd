@@ -29,6 +29,8 @@ package message_types_pkg is
 
   procedure push_message_type(queue : queue_t; message_type : message_type_t);
   impure function pop_message_type(queue : queue_t) return message_type_t;
+
+  constant message_handled : message_type_t := new_message_type("message already handled");
 end package;
 
 package body message_types_pkg is
@@ -49,10 +51,14 @@ package body message_types_pkg is
   procedure unexpected_message_type(message_type : message_type_t) is
     constant code : integer := message_type.p_code;
   begin
-    if is_valid(code) then
-      fail(p_message_types.p_fail_log, "Got unexpected message " & to_string(get(p_message_types.p_name_ptrs, code)));
+    if message_type = message_handled then
+      null;
+    elsif is_valid(code) then
+      fail(p_message_types.p_fail_log,
+           "Got unexpected message " & to_string(to_string_ptr(get(p_message_types.p_name_ptrs, code))));
     else
-      fail(p_message_types.p_fail_log, "Got invalid message with code " & to_string(code));
+      fail(p_message_types.p_fail_log,
+           "Got invalid message with code " & to_string(code));
     end if;
   end procedure;
 
