@@ -71,14 +71,12 @@ package bus_pkg is
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
                       constant expected : std_logic_vector;
-                      constant mask : std_logic_vector := "";
                       constant msg : string := "");
 
   procedure check_bus(signal event : inout event_t;
                       constant bus_handle : bus_t;
                       constant address : natural;
                       constant expected : std_logic_vector;
-                      constant mask : std_logic_vector := "";
                       constant msg : string := "");
 
   -- Blocking read with immediate reply
@@ -93,14 +91,13 @@ package bus_pkg is
                      variable data : inout std_logic_vector);
 
 
-  -- Wait until a read from address equals the value in the positions defined by the mask bit
+  -- Wait until a read from address equals the value using std_match
   -- If timeout is reached error with msg
   procedure wait_until_read_equals(
     signal event : inout event_t;
     bus_handle   : bus_t;
     addr         : std_logic_vector;
     value        : std_logic_vector;
-    mask         : std_logic_vector;
     timeout      : delay_length := delay_length'high;
     msg    : string       := "");
 
@@ -196,11 +193,9 @@ package body bus_pkg is
                       constant bus_handle : bus_t;
                       constant address : std_logic_vector;
                       constant expected : std_logic_vector;
-                      constant mask : std_logic_vector := "";
                       constant msg : string := "") is
     variable data : std_logic_vector(bus_handle.p_data_length-1 downto 0);
     variable edata : std_logic_vector(data'range) := (others => '0');
-    variable full_mask : std_logic_vector(data'range) := (others => '0');
 
     impure function error_prefix return string is
     begin
@@ -218,19 +213,10 @@ package body bus_pkg is
   begin
 
     edata(expected'length-1 downto 0) := expected;
-    if mask = "" then
-      full_mask := (others => '1');
-    else
-      full_mask(mask'length-1 downto 0) := mask;
-    end if;
 
     read_bus(event, bus_handle, address, data);
-    if (data and full_mask) /= (edata and full_mask) then
-      if mask = "" then
-        fail(bus_handle.p_fail_log, base_error);
-      else
-        fail(bus_handle.p_fail_log, base_error & " using mask x""" & to_hstring(full_mask) & """");
-      end if;
+    if not std_match(data, edata) then
+      fail(bus_handle.p_fail_log, base_error);
     end if;
   end procedure;
 
@@ -238,10 +224,9 @@ package body bus_pkg is
                       constant bus_handle : bus_t;
                       constant address : natural;
                       constant expected : std_logic_vector;
-                      constant mask : std_logic_vector := "";
                       constant msg : string := "") is
   begin
-    check_bus(event, bus_handle, to_address(bus_handle, address), expected, mask, msg);
+    check_bus(event, bus_handle, to_address(bus_handle, address), expected, msg);
   end;
 
   -- Non blocking read with delayed reply
@@ -305,7 +290,6 @@ package body bus_pkg is
     bus_handle   : bus_t;
     addr         : std_logic_vector;
     value        : std_logic_vector;
-    mask         : std_logic_vector;
     timeout      : delay_length := delay_length'high;
     msg    : string       := "") is
     constant start_time : time         := now;
@@ -317,7 +301,7 @@ package body bus_pkg is
       -- timeout is set to zero.
       waited := now - start_time;
       read_bus(event, bus_handle, addr, data);
-      if (data(value'length-1 downto 0) and mask) = (value and mask) then
+      if std_match(data(value'length-1 downto 0), value) then
         return;
       end if;
     end loop;
@@ -337,13 +321,11 @@ package body bus_pkg is
     value        : std_logic;
     timeout      : delay_length := delay_length'high;
     msg    : string       := "") is
-    variable data, mask : std_logic_vector(bus_handle.p_data_length-1 downto 0);
+    variable data : std_logic_vector(bus_handle.p_data_length-1 downto 0);
   begin
-    data      := (others => '0');
-    mask      := (others => '0');
+    data      := (others => '-');
     data(idx) := value;
-    mask(idx) := '1';
-    wait_until_read_equals(event, bus_handle, addr, data, mask, timeout, msg);
+    wait_until_read_equals(event, bus_handle, addr, data, timeout, msg);
   end;
 
 end package body;
