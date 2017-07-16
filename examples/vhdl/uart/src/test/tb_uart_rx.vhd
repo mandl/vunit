@@ -27,7 +27,7 @@ architecture tb of tb_uart_rx is
   signal clk : std_logic := '0';
   signal rx : std_logic := '1';
   signal overflow : std_logic;
-  signal tready : std_logic := '0';
+  signal tready : std_logic;
   signal tvalid : std_Logic;
   signal tdata : std_logic_vector(7 downto 0);
 
@@ -35,6 +35,9 @@ architecture tb of tb_uart_rx is
 
   constant uart_bfm : uart_master_t := new_uart_master(initial_baud_rate => baud_rate);
   constant uart_stream : stream_master_t := as_stream(uart_bfm);
+
+  constant axi_stream_bfm : axi_stream_slave_t := new_axi_stream_slave(data_length => tdata'length);
+  constant axi_stream : stream_slave_t := as_stream(axi_stream_bfm);
 begin
 
   main : process
@@ -57,11 +60,9 @@ begin
 
       elsif run("test_receives_one_byte") then
         write_stream(event, uart_stream, x"77");
-        tready <= '1';
-        wait until tready = '1' and tvalid = '1' and rising_edge(clk);
-        check_equal(tdata, std_logic_vector'(x"77"));
-        tready <= '0';
-        check_false(clk, check_enabled, tvalid);
+        check_stream(event, axi_stream, x"77");
+        wait until rising_edge(clk);
+        check_equal(tvalid, '0');
         check_equal(num_overflows, 0);
 
       elsif run("test_two_bytes_casues_overflow") then
@@ -108,4 +109,14 @@ begin
       uart => uart_bfm)
     port map (
       tx => rx);
+
+  axi_stream_slave_bfm: entity vunit_lib.axi_stream_slave
+    generic map (
+      slave => axi_stream_bfm)
+    port map (
+      aclk   => clk,
+      tvalid => tvalid,
+      tready => tready,
+      tdata  => tdata);
+
 end architecture;
