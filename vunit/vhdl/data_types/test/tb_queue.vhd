@@ -137,6 +137,33 @@ begin
       assert pop_real(queue) = -(1.0 + 0.5**23);
       assert pop_real(queue) = 1.0 + 0.5**53;
       assert pop_real(queue) = -(1.0 + 0.5**53);
+
+    elsif run("Test push and pop time") then
+      queue := allocate;
+      push_time(queue, 1 fs);
+      push_time(queue, 1 ps);
+      push_time(queue, 1 ns);
+      push_time(queue, 1 ms);
+      push_time(queue, 1 sec);
+      push_time(queue, 1 min);
+      push_time(queue, 1 hr);
+      assert pop_time(queue) = 1 fs;
+      assert pop_time(queue) = 1 ps;
+      assert pop_time(queue) = 1 ns;
+      assert pop_time(queue) = 1 ms;
+      assert pop_time(queue) = 1 sec;
+      assert pop_time(queue) = 1 min;
+      assert pop_time(queue) = 1 hr;
+
+      push_time(queue, 1 hr + 1 fs);
+      assert pop_time(queue) = 1 hr + 1 fs;
+
+      push_time(queue, -1 fs);
+      push_time(queue, -1 hr);
+      push_time(queue, -1 hr - 1 fs);
+      assert pop_time(queue) = -1 fs;
+      assert pop_time(queue) = -1 hr;
+      assert pop_time(queue) = -1 hr - 1 fs;
     end if;
 
     test_runner_cleanup(runner);

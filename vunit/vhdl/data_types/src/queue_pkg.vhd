@@ -42,6 +42,9 @@ package queue_pkg is
   procedure push_string(queue : queue_t; value : string);
   impure function pop_string(queue : queue_t) return string;
 
+  procedure push_time(queue : queue_t; value : time);
+  impure function pop_time(queue : queue_t) return time;
+
   procedure push_integer_vector_ptr_ref(queue : queue_t; value : integer_vector_ptr_t);
   impure function pop_integer_vector_ptr_ref(queue : queue_t) return integer_vector_ptr_t;
 
@@ -234,6 +237,16 @@ package body queue_pkg is
     else
       return descending_string;
     end if;
+  end;
+
+  procedure push_time(queue : queue_t; value : time) is
+  begin
+    push_string(queue, time'image(value));
+  end;
+
+  impure function pop_time(queue : queue_t) return time is
+  begin
+    return time'value(pop_string(queue));
   end;
 
   procedure push_integer_vector_ptr_ref(queue : queue_t; value : integer_vector_ptr_t) is
