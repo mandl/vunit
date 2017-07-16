@@ -98,11 +98,11 @@ package com_pkg is
     variable request_msg : inout msg_t;
     variable reply_msg   : inout msg_t;
     constant timeout     : in    time := max_timeout_c);
-  -- procedure publish (
-  --   signal net       : inout network_t;
-  --   constant sender  : in    actor_t;
-  --   variable msg     : inout msg_t;
-  --   constant timeout : in    time := max_timeout_c);
+  procedure publish (
+    signal net       : inout network_t;
+    constant sender  : in    actor_t;
+    variable msg     : inout msg_t;
+    constant timeout : in    time := max_timeout_c);
 
   -----------------------------------------------------------------------------
   -- Secondary send and receive related subprograms

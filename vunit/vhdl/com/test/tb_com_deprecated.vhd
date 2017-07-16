@@ -24,7 +24,8 @@ architecture test_fixture of tb_com_deprecated is
   signal hello_world_received, start_receiver, start_server,
     start_server2, start_server3, start_server4, start_server5, start_server6,
     start_subscribers : boolean := false;
-  signal start_limited_inbox, limited_inbox_actor_done : boolean                  := false;
+  signal start_limited_inbox, start_limited_inbox_subscriber,
+    limited_inbox_actor_done : boolean                  := false;
   signal hello_subscriber_received                     : std_logic_vector(1 to 2) := "ZZ";
 begin
   test_runner : process
@@ -155,6 +156,7 @@ begin
         send(net, actor, "First message", receipt);
         send(net, actor, "Second message", receipt, 0 ns);
         send(net, actor, "Third message", receipt, 9 ns);
+
       elsif run("Test that an actor can publish messages to multiple subscribers") then
         publisher         := create("publisher");
         start_subscribers <= true;
@@ -163,6 +165,17 @@ begin
         check(status = ok, "Expected publish to succeed");
         wait until hello_subscriber_received = "11" for 1 ns;
         check(hello_subscriber_received = "11", "Expected ""hello subscribers"" to be received at the subscribers");
+      elsif run("Test that an actor can publish messages to multiple subscribers 2") then
+        publisher         := create("publisher");
+        start_subscribers <= true;
+        wait for 1 ns;
+        message := compose("hello subscriber");
+        publish(net, publisher, message);
+        check(message.sender = publisher);
+        check(message.receiver = null_actor_c);
+        wait until hello_subscriber_received = "11" for 1 ns;
+        check(hello_subscriber_received = "11", "Expected ""hello subscribers"" to be received at the subscribers");
+
       elsif run("Test that a subscriber can unsubscribe") then
         subscribe(self, self, status);
         check(status = ok, "Expected subscription to be ok");
@@ -176,6 +189,16 @@ begin
         check(status = ok, "Expected publish to succeed");
         receive(net, self, message, 0 ns);
         check(message.status = timeout, "Expected no message");
+      elsif run("Test that a subscriber can unsubscribe 2") then
+        subscribe(self, self);
+        publish(net, self, "hello subscriber");
+        receive(net, self, message, 0 ns);
+        check(message.status = ok, "Expected no problems with receive");
+        check_equal(message.payload.all, "hello subscriber");
+        unsubscribe(self, self);
+        publish(net, self, "hello subscriber");
+        wait_for_message(net, self, status, 0 ns);
+        check(status = timeout, "Expected no message");
       elsif run("Test that a destroyed subscriber is not addressed by the publisher") then
         subscriber := create("subscriber");
         subscribe(subscriber, self, status);
@@ -190,10 +213,28 @@ begin
         check(status = ok, "Expected destroy status to be ok");
         publish(net, self, "hello subscriber", status);
         check(status = ok, "Expected publish to succeed. Got " & com_status_t'image(status) & ".");
+      elsif run("Test that a destroyed subscriber is not addressed by the publisher 2") then
+        subscriber := create("subscriber");
+        subscribe(subscriber, self);
+        publish(net, self, "hello subscriber");
+        receive(net, subscriber, message, 0 ns);
+        check_equal(message.payload.all, "hello subscriber");
+        destroy(subscriber);
+        publish(net, self, "hello subscriber");
       elsif run("Expected to fail: Test that an actor can only subscribe once to the same publisher") then
         subscribe(self, self, status);
         check(status = ok, "Expected subscription to be ok");
         subscribe(self, self, status);
+      elsif run("Expected to fail: Test that publishing to subscribers with full inboxes results is an error") then
+        start_limited_inbox_subscriber <= true;
+        wait for 1 ns;
+        publish(net, self, "hello subscribers");
+        publish(net, self, "hello subscribers", 8 ns);
+      elsif run("Test that publishing to subscribers with full inboxes results passes if waiting") then
+        start_limited_inbox_subscriber <= true;
+        wait for 1 ns;
+        publish(net, self, "hello subscribers", 0 ns);
+        publish(net, self, "hello subscribers", 11 ns);
 
       elsif run("Test that a client can wait for an out-of-order request reply") then
         start_server2 <= true;
@@ -506,5 +547,18 @@ begin
     limited_inbox_actor_done <= true;
     wait;
   end process limited_inbox_actor;
+
+  limited_inbox_subscriber : process is
+    variable self    : actor_t;
+    variable message : message_ptr_t;
+  begin
+    wait until start_limited_inbox_subscriber;
+    self := create("limited inbox subscriber", 1);
+    subscribe(self, find("test runner"));
+    wait for 10 ns;
+    receive(net, self, message);
+    wait;
+  end process limited_inbox_subscriber;
+
 
 end test_fixture;

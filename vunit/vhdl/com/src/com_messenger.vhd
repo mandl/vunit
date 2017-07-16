@@ -9,10 +9,14 @@
 
 use work.com_types_pkg.all;
 use work.com_support_pkg.all;
+use work.queue_pkg.all;
+use work.queue_pool_pkg.all;
+use work.com_codec_pkg.all;
 
 use std.textio.all;
 
 package com_messenger_pkg is
+  constant queue_pool : queue_pool_t := allocate;
   type mailbox_name_t is (inbox, outbox);
 
   type messenger_t is protected
@@ -48,6 +52,7 @@ package com_messenger_pkg is
       constant payload    : in  string;
       variable receipt    : out receipt_t);
     procedure publish (sender : actor_t; payload : string);
+    procedure publish (constant sender : in actor_t; variable msg : inout msg_t);
 
     -----------------------------------------------------------------------------
     -- Receive related subprograms
@@ -464,6 +469,22 @@ package body com_messenger_pkg is
       send(sender, subscriber_item.actor, inbox, no_message_id_c, payload, receipt);
       subscriber_item := subscriber_item.next_item;
     end loop;
+  end;
+
+  procedure publish (constant sender : in actor_t; variable msg : inout msg_t) is
+    variable receipt         : receipt_t;
+    variable subscriber_item : subscriber_item_ptr_t;
+  begin
+    check(not unknown_actor(sender), unknown_publisher_error);
+
+    subscriber_item := actors(sender.id).subscribers;
+    while subscriber_item /= null loop
+      send(sender, subscriber_item.actor, inbox, no_message_id_c, encode(msg.data), receipt);
+      msg.data := copy(msg.data);
+      subscriber_item := subscriber_item.next_item;
+    end loop;
+
+    recycle(queue_pool, msg.data);
   end;
 
   -----------------------------------------------------------------------------

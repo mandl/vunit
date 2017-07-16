@@ -23,6 +23,7 @@ package queue_pkg is
   impure function allocate return queue_t;
   impure function length(queue : queue_t) return integer;
   procedure flush(queue : queue_t);
+  impure function copy(queue : queue_t) return queue_t;
 
   procedure push(queue : queue_t; value : integer);
   impure function pop(queue : queue_t) return integer;
@@ -77,6 +78,16 @@ package body queue_pkg is
     assert queue /= null_queue report "Flush null queue";
     set(queue.p_meta, head_idx, 0);
     set(queue.p_meta, tail_idx, 0);
+  end;
+
+  impure function copy(queue : queue_t) return queue_t is
+    variable result : queue_t := allocate;
+  begin
+    for i in 0 to length(queue) - 1 loop
+      push(result, get(queue.data, i));
+    end loop;
+
+    return result;
   end;
 
   procedure push(queue : queue_t; value : integer) is

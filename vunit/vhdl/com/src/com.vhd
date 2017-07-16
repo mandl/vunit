@@ -18,8 +18,6 @@ use work.queue_pool_pkg.all;
 use std.textio.all;
 
 package body com_pkg is
-  constant queue_pool : queue_pool_t := allocate;
-
   -----------------------------------------------------------------------------
   -- Handling of actors
   -----------------------------------------------------------------------------
@@ -366,25 +364,24 @@ package body com_pkg is
     delete(message);
   end;
 
-  -- procedure publish (
-  --   signal net       : inout network_t;
-  --   constant sender  : in    actor_t;
-  --   variable msg     : inout msg_t;
-  --   constant timeout : in    time := max_timeout_c) is
-  -- begin
-  --   check(msg.data /= null_queue, null_message_error);
-  --   msg.sender   := sender;
-  --   msg.receiver := null_actor_c;
+  procedure publish (
+    signal net       : inout network_t;
+    constant sender  : in    actor_t;
+    variable msg     : inout msg_t;
+    constant timeout : in    time := max_timeout_c) is
+  begin
+    check(msg.data /= null_queue, null_message_error);
+    msg.sender   := sender;
+    msg.receiver := null_actor_c;
 
-  --   if messenger.subscriber_inbox_is_full(sender) then
-  --     wait on net until not messenger.subscriber_inbox_is_full(sender) for timeout;
-  --     check(not messenger.subscriber_inbox_is_full(sender), full_inbox_error);
-  --   end if;
+    if messenger.subscriber_inbox_is_full(sender) then
+      wait on net until not messenger.subscriber_inbox_is_full(sender) for timeout;
+      check(not messenger.subscriber_inbox_is_full(sender), full_inbox_error);
+    end if;
 
-  --   messenger.publish(sender, encode(msg.data));
-  --   msg.data := null_queue;
-  --   notify(net);
-  -- end;
+    messenger.publish(sender, msg);
+    notify(net);
+  end;
 
   -----------------------------------------------------------------------------
   -- Secondary send and receive related subprograms

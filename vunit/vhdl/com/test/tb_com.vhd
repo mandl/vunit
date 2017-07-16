@@ -33,7 +33,6 @@ begin
     variable status                                                       : com_status_t;
     variable receipt, receipt2, receipt3                                  : receipt_t;
     variable n_actors                                                     : natural;
-    variable message                                                      : message_ptr_t;
     variable t_start, t_stop                                              : time;
     variable ack                                                          : boolean;
     variable msg, msg2, request_msg, request_msg2, request_msg3, reply_msg : msg_t;
@@ -288,43 +287,57 @@ begin
         publisher         := create("publisher");
         start_subscribers <= true;
         wait for 1 ns;
-        message := compose("hello subscriber");
-        publish(net, publisher, message);
-        check(message.sender = publisher);
-        check(message.receiver = null_actor_c);
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, publisher, msg);
+        check(msg.sender = publisher);
+        check(msg.receiver = null_actor_c);
         wait until hello_subscriber_received = "11" for 1 ns;
         check(hello_subscriber_received = "11", "Expected ""hello subscribers"" to be received at the subscribers");
       elsif run("Test that a subscriber can unsubscribe") then
         subscribe(self, self);
-        publish(net, self, "hello subscriber");
-        receive(net, self, message, 0 ns);
-        check(message.status = ok, "Expected no problems with receive");
-        check_equal(message.payload.all, "hello subscriber");
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg);
+        receive(net, self, msg, 0 ns);
+        check_equal(pop_string(msg.data), "hello subscriber");
         unsubscribe(self, self);
         publish(net, self, "hello subscriber");
+        push_string(msg.data, "hello subscriber");
         wait_for_message(net, self, status, 0 ns);
         check(status = timeout, "Expected no message");
       elsif run("Test that a destroyed subscriber is not addressed by the publisher") then
         subscriber := create("subscriber");
         subscribe(subscriber, self);
-        publish(net, self, "hello subscriber");
-        receive(net, subscriber, message, 0 ns);
-        check_equal(message.payload.all, "hello subscriber");
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg);
+        receive(net, subscriber, msg, 0 ns);
+        check_equal(pop_string(msg.data), "hello subscriber");
         destroy(subscriber);
-        publish(net, self, "hello subscriber");
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg);
       elsif run("Expected to fail: Test that an actor can only subscribe once to the same publisher") then
         subscribe(self, self);
         subscribe(self, self);
       elsif run("Expected to fail: Test that publishing to subscribers with full inboxes results is an error") then
         start_limited_inbox_subscriber <= true;
         wait for 1 ns;
-        publish(net, self, "hello subscribers");
-        publish(net, self, "hello subscribers", 8 ns);
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg);
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg, 8 ns);
       elsif run("Test that publishing to subscribers with full inboxes results passes if waiting") then
         start_limited_inbox_subscriber <= true;
         wait for 1 ns;
-        publish(net, self, "hello subscribers", 0 ns);
-        publish(net, self, "hello subscribers", 11 ns);
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg);
+        msg := create;
+        push_string(msg.data, "hello subscriber");
+        publish(net, self, msg, 11 ns);
 
       -- Request, (receive_)reply and acknowledge
       elsif run("Test that a client can wait for an out-of-order request reply") then
@@ -370,7 +383,7 @@ begin
         push_string(request_msg.data, "request3");
         request(net, server, request_msg, ack);
         check_false(ack, "Expected negative acknowledgement");
-      elsif run("Test waiting and getting a reply") then
+      elsif run("Test that waiting and getting a reply with timeout works") then
         start_server4 <= true;
         server        := find("server4");
 
@@ -475,14 +488,14 @@ begin
   subscribers : for i in 1 to 2 generate
     process is
       variable self, publisher : actor_t;
-      variable message         : message_ptr_t;
+      variable msg         : msg_t;
     begin
       wait until start_subscribers;
       self      := create("subscriber " & integer'image(i));
       publisher := find("publisher");
       subscribe(self, publisher);
-      receive(net, self, message);
-      if check_equal(message.payload.all, "hello subscriber") then
+      receive(net, self, msg);
+      if check_equal(pop_string(msg.data), "hello subscriber") then
         hello_subscriber_received(i)     <= '1';
         hello_subscriber_received(3 - i) <= 'Z';
       end if;
@@ -605,13 +618,13 @@ begin
 
   limited_inbox_subscriber : process is
     variable self    : actor_t;
-    variable message : message_ptr_t;
+    variable msg : msg_t;
   begin
     wait until start_limited_inbox_subscriber;
     self := create("limited inbox subscriber", 1);
     subscribe(self, find("test runner"));
     wait for 10 ns;
-    receive(net, self, message);
+    receive(net, self, msg);
     wait;
   end process limited_inbox_subscriber;
 
