@@ -10,19 +10,16 @@ use ieee.std_logic_1164.all;
 context work.vunit_context;
 context work.com_context;
 use work.queue_pkg.all;
-use work.fail_pkg.all;
 use work.message_types_pkg.all;
 use work.sync_pkg.all;
 
 package stream_pkg is
   type stream_master_t is record
     p_actor : actor_t;
-    p_fail_log : fail_log_t;
   end record;
 
   type stream_slave_t is record
     p_actor : actor_t;
-    p_fail_log : fail_log_t;
   end record;
 
   impure function new_stream_master return stream_master_t;
@@ -62,12 +59,12 @@ end package;
 package body stream_pkg is
   impure function new_stream_master return stream_master_t is
   begin
-    return (p_actor => create, p_fail_log => new_fail_log);
+    return (p_actor => create);
   end;
 
   impure function new_stream_slave return stream_slave_t is
   begin
-    return (p_actor => create, p_fail_log => new_fail_log);
+    return (p_actor => create);
   end;
 
   procedure write_stream(signal event : inout event_t;

@@ -8,6 +8,7 @@ context bfm_context is
   library vunit_lib;
   use vunit_lib.bus_pkg.all;
   use vunit_lib.axi_pkg.all;
+  use vunit_lib.axi_stream_pkg.all;
   use vunit_lib.uart_pkg.all;
   use vunit_lib.stream_pkg.all;
   context vunit_lib.com_context;
