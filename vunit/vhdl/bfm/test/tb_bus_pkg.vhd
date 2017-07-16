@@ -93,40 +93,8 @@ begin
     test_runner_cleanup(runner);
   end process;
 
-  memory_model : process
-    variable request_msg, reply_msg : msg_t;
-    variable msg_type : message_type_t;
-    variable address : std_logic_vector(address_length(bus_handle)-1 downto 0);
-    variable byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
-    variable data  : std_logic_vector(data_length(bus_handle)-1 downto 0);
-    constant blen : natural := byte_length(bus_handle);
-  begin
-    loop
-      receive(event, bus_handle.p_actor, request_msg);
-      msg_type := pop_message_type(request_msg.data);
-
-      if msg_type = bus_read_msg then
-        address := pop_std_ulogic_vector(request_msg.data);
-        data := read_word(memory, to_integer(unsigned(address)), bytes_per_word => data'length/8);
-        reply_msg := create;
-        push_std_ulogic_vector(reply_msg.data, data);
-        reply(event, request_msg, reply_msg);
-
-      elsif msg_type = bus_write_msg then
-        address := pop_std_ulogic_vector(request_msg.data);
-        data := pop_std_ulogic_vector(request_msg.data);
-        byte_enable := pop_std_ulogic_vector(request_msg.data);
-
-        for i in byte_enable'range loop
-          -- @TODO byte_enable on memory_t?
-          if byte_enable(i) = '1' then
-            write_word(memory, to_integer(unsigned(address))+i, data(blen*(i+1)-1 downto blen*i));
-          end if;
-        end loop;
-      else
-        unexpected_message_type(msg_type);
-      end if;
-    end loop;
-  end process;
-
+  bus2memory_inst : entity work.bus2memory
+    generic map (
+      bus_handle => bus_handle,
+      memory     => memory);
 end architecture;
