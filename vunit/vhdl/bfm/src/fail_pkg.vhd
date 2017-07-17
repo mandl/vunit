@@ -6,6 +6,7 @@
 
 -- Add support for emiting failures that can easily be verified
 
+context work.vunit_context;
 use work.queue_pkg.all;
 use work.integer_vector_ptr_pkg.all;
 
@@ -23,6 +24,8 @@ package fail_pkg is
   procedure check_no_failures(fail_log : fail_log_t);
   impure function has_failure(fail_log : fail_log_t) return boolean;
   impure function pop_failure(fail_log : fail_log_t) return string;
+  procedure check_failure(fail_log : fail_log_t; msg : string);
+  procedure check_failure_once(fail_log : fail_log_t; msg : string);
 end package;
 
 package body fail_pkg is
@@ -71,6 +74,18 @@ package body fail_pkg is
 
   impure function pop_failure(fail_log : fail_log_t) return string is
   begin
+    assert has_failure(fail_log) report "No failure occured";
     return pop_string(fail_log.p_fail_queue);
+  end;
+
+  procedure check_failure(fail_log : fail_log_t; msg : string) is
+  begin
+    check_equal(pop_failure(fail_log), msg);
+  end;
+
+  procedure check_failure_once(fail_log : fail_log_t; msg : string) is
+  begin
+    check_equal(pop_failure(fail_log), msg);
+    check_no_failures(fail_log);
   end;
 end package body;

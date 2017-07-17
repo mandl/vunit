@@ -13,6 +13,7 @@ context work.com_context;
 context work.data_types_context;
 use work.axi_stream_pkg.all;
 use work.stream_pkg.all;
+use work.fail_pkg.all;
 
 entity tb_axi_stream is
   generic (runner_cfg : string);
@@ -43,6 +44,18 @@ begin
       write_stream(event, master_stream, x"77");
       read_stream(event, slave_stream, data);
       check_equal(data, std_logic_vector'(x"77"), "read stream data");
+
+    elsif run("test single axi write and read") then
+      write_axi_stream(event, master_axi_stream, x"88", tlast => '1');
+      read_stream(event, slave_stream, data);
+      check_equal(data, std_logic_vector'(x"88"), "read stream data");
+
+    elsif run("test stream read expects tlast") then
+      disable_failure(slave_axi_stream.p_fail_log);
+      write_axi_stream(event, master_axi_stream, x"99", tlast => '0');
+      read_stream(event, slave_stream, data);
+      check_failure_once(slave_axi_stream.p_fail_log,
+                         "Expected tlast = '1' in single transaction write got 0");
 
     elsif run("test read before write") then
       for i in 0 to 7 loop

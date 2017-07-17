@@ -14,6 +14,7 @@ use work.axi_stream_pkg.all;
 use work.queue_pkg.all;
 use work.message_types_pkg.all;
 use work.sync_pkg.all;
+use work.fail_pkg.all;
 
 entity axi_stream_slave is
   generic (
@@ -39,6 +40,10 @@ begin
       tready <= '1';
       wait until (tvalid and tready) = '1' and rising_edge(aclk);
       tready <= '0';
+
+      if tlast /= '1' then
+        fail(slave.p_fail_log, "Expected tlast = '1' in single transaction write got " & to_string(tlast));
+      end if;
 
       reply_msg := create;
       push_std_ulogic_vector(reply_msg.data, tdata);
