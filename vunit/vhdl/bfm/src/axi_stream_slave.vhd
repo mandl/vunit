@@ -22,7 +22,8 @@ entity axi_stream_slave is
     aclk : in std_logic;
     tvalid : in std_logic;
     tready : out std_logic := '0';
-    tdata : in std_logic_vector(data_length(slave)-1 downto 0));
+    tdata : in std_logic_vector(data_length(slave)-1 downto 0);
+    tlast : in std_logic := '1');
 end entity;
 
 architecture a of axi_stream_slave is

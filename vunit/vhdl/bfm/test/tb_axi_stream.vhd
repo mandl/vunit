@@ -29,6 +29,7 @@ architecture a of tb_axi_stream is
   signal tvalid : std_logic;
   signal tready : std_logic;
   signal tdata  : std_logic_vector(data_length(slave_axi_stream)-1 downto 0);
+  signal tlast : std_logic;
 begin
 
   main : process
@@ -71,7 +72,8 @@ begin
       aclk   => aclk,
       tvalid => tvalid,
       tready => tready,
-      tdata  => tdata);
+      tdata  => tdata,
+      tlast  => tlast);
 
   axi_stream_slave_inst : entity work.axi_stream_slave
     generic map (
@@ -80,7 +82,8 @@ begin
       aclk   => aclk,
       tvalid => tvalid,
       tready => tready,
-      tdata  => tdata);
+      tdata  => tdata,
+      tlast  => tlast);
 
   aclk <= not aclk after 5 ns;
 end architecture;
