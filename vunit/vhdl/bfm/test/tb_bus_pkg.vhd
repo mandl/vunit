@@ -68,16 +68,13 @@ begin
 
       disable_failure(bus_handle.p_fail_log);
       check_bus(event, bus_handle, x"00000000", std_logic_vector'(x"00112244"));
-      check_equal(pop_failure(bus_handle.p_fail_log), "check_bus(x""00000000"") - Got x""00112233"" expected x""00112244""");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "check_bus(x""00000000"") - Got x""00112233"" expected x""00112244""");
 
       check_bus(event, bus_handle, x"00000000", std_logic_vector'(x"00112244"), msg => "msg");
-      check_equal(pop_failure(bus_handle.p_fail_log), "msg - Got x""00112233"" expected x""00112244""");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "msg - Got x""00112233"" expected x""00112244""");
 
       check_bus(event, bus_handle, x"00000000", std_logic_vector'(x"--112244"));
-      check_equal(pop_failure(bus_handle.p_fail_log), "check_bus(x""00000000"") - Got x""00112233"" expected x""XX112244""");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "check_bus(x""00000000"") - Got x""00112233"" expected x""XX112244""");
 
     elsif run("test check_bus support reduced data length") then
       alloc := allocate(memory, 4, permissions => read_only);
@@ -87,8 +84,7 @@ begin
       write_word(memory, base_address(alloc), x"77112233", ignore_permissions => True);
       disable_failure(bus_handle.p_fail_log);
       check_bus(event, bus_handle, x"00000000", std_logic_vector'(x"112233"));
-      check_equal(pop_failure(bus_handle.p_fail_log), "check_bus(x""00000000"") - Got x""77112233"" expected x""00112233""");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "check_bus(x""00000000"") - Got x""77112233"" expected x""00112233""");
     end if;
     test_runner_cleanup(runner);
   end process;

@@ -23,7 +23,6 @@ package fail_pkg is
   procedure disable_failure(fail_log : fail_log_t);
   procedure check_no_failures(fail_log : fail_log_t);
   impure function has_failure(fail_log : fail_log_t) return boolean;
-  impure function pop_failure(fail_log : fail_log_t) return string;
   procedure check_failure(fail_log : fail_log_t; msg : string);
   procedure check_failure_once(fail_log : fail_log_t; msg : string);
 end package;

@@ -122,12 +122,10 @@ begin
       memory := new_memory;
       disable_failure(memory.p_fail_log);
       write_byte(memory, 0, 255);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Writing to empty memory");
 
       byte := read_byte(memory, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Reading from empty memory");
 
     elsif run("Test access memory out of range") then
       memory := new_memory;
@@ -135,10 +133,10 @@ begin
 
       disable_failure(memory.p_fail_log);
       write_byte(memory, 1, 255);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to address 1 out of range 0 to 0");
+      check_failure_once(memory.p_fail_log, "Writing to address 1 out of range 0 to 0");
 
       byte := read_byte(memory, 1);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from address 1 out of range 0 to 0");
+      check_failure_once(memory.p_fail_log, "Reading from address 1 out of range 0 to 0");
 
     elsif run("Test default permissions") then
       memory := new_memory;
@@ -168,10 +166,10 @@ begin
 
       disable_failure(memory.p_fail_log);
       write_byte(memory, 5, 255);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to " & describe_address(memory, 5) & " without permission (no_access)");
+      check_failure_once(memory.p_fail_log, "Writing to " & describe_address(memory, 5) & " without permission (no_access)");
 
       byte := read_byte(memory, 5);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from " & describe_address(memory, 5) & " without permission (no_access)");
+      check_failure_once(memory.p_fail_log, "Reading from " & describe_address(memory, 5) & " without permission (no_access)");
       enable_failure(memory.p_fail_log);
 
       -- Ignore permissions
@@ -187,7 +185,7 @@ begin
 
       disable_failure(memory.p_fail_log);
       byte := read_byte(memory, 5);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from " & describe_address(memory, 5) & " without permission (write_only)");
+      check_failure_once(memory.p_fail_log, "Reading from " & describe_address(memory, 5) & " without permission (write_only)");
       enable_failure(memory.p_fail_log);
 
       -- Ignore permissions
@@ -202,7 +200,7 @@ begin
 
       disable_failure(memory.p_fail_log);
       write_byte(memory, 5, 255);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to " & describe_address(memory, 5) & " without permission (read_only)");
+      check_failure_once(memory.p_fail_log, "Writing to " & describe_address(memory, 5) & " without permission (read_only)");
       enable_failure(memory.p_fail_log);
 
       byte := read_byte(memory, 5);
@@ -235,7 +233,7 @@ begin
 
       disable_failure(memory.p_fail_log);
       write_byte(memory, 0, 255);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to " & describe_address(memory, 0) & ". Got 255 expected 77");
+      check_failure_once(memory.p_fail_log, "Writing to " & describe_address(memory, 0) & ". Got 255 expected 77");
       enable_failure(memory.p_fail_log);
 
     elsif run("Test set expected word") then
@@ -245,9 +243,9 @@ begin
 
       disable_failure(memory.p_fail_log);
       write_byte(memory, 0, 16#33#);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to " & describe_address(memory, 0) & ". Got 51 expected 34");
+      check_failure_once(memory.p_fail_log, "Writing to " & describe_address(memory, 0) & ". Got 51 expected 34");
       write_byte(memory, 1, 16#22#);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to " & describe_address(memory, 1) & ". Got 34 expected 51");
+      check_failure_once(memory.p_fail_log, "Writing to " & describe_address(memory, 1) & ". Got 34 expected 51");
       enable_failure(memory.p_fail_log);
 
     elsif run("Test clear expected byte") then
@@ -276,33 +274,27 @@ begin
 
       disable_failure(memory.p_fail_log);
       dummy_permissions := get_permissions(memory, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Reading from empty memory");
 
       disable_failure(memory.p_fail_log);
       set_permissions(memory, 0, no_access);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Writing to empty memory");
 
       disable_failure(memory.p_fail_log);
       dummy_boolean := has_expected_byte(memory, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Reading from empty memory");
 
       disable_failure(memory.p_fail_log);
       clear_expected_byte(memory, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Writing to empty memory");
 
       disable_failure(memory.p_fail_log);
       set_expected_byte(memory, 0, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Writing to empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Writing to empty memory");
 
       disable_failure(memory.p_fail_log);
       byte := get_expected_byte(memory, 0);
-      check_equal(pop_failure(memory.p_fail_log), "Reading from empty memory");
-      check_no_failures(memory.p_fail_log);
+      check_failure_once(memory.p_fail_log, "Reading from empty memory");
 
     elsif run("Test check all was written") then
       memory := new_memory;
@@ -312,12 +304,12 @@ begin
 
       disable_failure(memory.p_fail_log);
       check_all_was_written(allocation);
-      check_equal(pop_failure(memory.p_fail_log), "The " & describe_address(memory, 0) & " was never written with expected byte 77");
-      check_equal(pop_failure(memory.p_fail_log), "The " & describe_address(memory, 2) & " was never written with expected byte 66");
+      check_failure(memory.p_fail_log, "The " & describe_address(memory, 0) & " was never written with expected byte 77");
+      check_failure_once(memory.p_fail_log, "The " & describe_address(memory, 2) & " was never written with expected byte 66");
 
       write_byte(memory, 0, 77);
       check_all_was_written(allocation);
-      check_equal(pop_failure(memory.p_fail_log), "The " & describe_address(memory, 2) & " was never written with expected byte 66");
+      check_failure_once(memory.p_fail_log, "The " & describe_address(memory, 2) & " was never written with expected byte 66");
       enable_failure(memory.p_fail_log);
 
       write_byte(memory, 2, 66);

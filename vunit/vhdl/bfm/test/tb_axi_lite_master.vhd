@@ -161,8 +161,7 @@ begin
       wait until (bready and bvalid) = '1' and rising_edge(clk);
       bvalid <= '0';
       wait until has_failure(bus_handle.p_fail_log) for 0 ns;
-      check_equal(pop_failure(bus_handle.p_fail_log), "bresp - Got AXI response SLVERR(10) expected OKAY(00)");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "bresp - Got AXI response SLVERR(10) expected OKAY(00)");
 
       done <= true;
 
@@ -192,8 +191,7 @@ begin
       wait until (rready and rvalid) = '1' and rising_edge(clk);
       rvalid <= '0';
       wait until has_failure(bus_handle.p_fail_log) for 0 ns;
-      check_equal(pop_failure(bus_handle.p_fail_log), "rresp - Got AXI response DECERR(11) expected OKAY(00)");
-      check_no_failures(bus_handle.p_fail_log);
+      check_failure_once(bus_handle.p_fail_log, "rresp - Got AXI response DECERR(11) expected OKAY(00)");
 
       done <= true;
 
