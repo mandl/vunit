@@ -28,29 +28,29 @@ end entity;
 
 architecture a of axi_stream_master is
 begin
-  main : process
-    variable msg : msg_t;
-    variable msg_type : message_type_t;
-  begin
-    receive(event, master.p_actor, msg);
-    msg_type := pop_message_type(msg.data);
+  -- main : process
+  --   variable msg : msg_t;
+  --   variable msg_type : message_type_t;
+  -- begin
+  --   receive(event, master.p_actor, msg);
+  --   msg_type := pop_message_type(msg.data);
 
-    handle_sync_message(event, msg_type, msg);
+  --   handle_sync_message(event, msg_type, msg);
 
-    if msg_type = stream_write_msg or msg_type = write_axi_stream_msg then
-      tvalid <= '1';
-      tdata <= pop_std_ulogic_vector(msg.data);
-      if msg_type = write_axi_stream_msg then
-        tlast <= pop_std_ulogic(msg.data);
-      else
-        tlast <= '1';
-      end if;
-      wait until (tvalid and tready) = '1' and rising_edge(aclk);
-      tvalid <= '0';
-      tlast <= '0';
-    else
-      unexpected_message_type(msg_type);
-    end if;
-  end process;
+  --   if msg_type = stream_write_msg or msg_type = write_axi_stream_msg then
+  --     tvalid <= '1';
+  --     tdata <= pop_std_ulogic_vector(msg.data);
+  --     if msg_type = write_axi_stream_msg then
+  --       tlast <= pop_std_ulogic(msg.data);
+  --     else
+  --       tlast <= '1';
+  --     end if;
+  --     wait until (tvalid and tready) = '1' and rising_edge(aclk);
+  --     tvalid <= '0';
+  --     tlast <= '0';
+  --   else
+  --     unexpected_message_type(msg_type);
+  --   end if;
+  -- end process;
 
 end architecture;

@@ -29,29 +29,29 @@ end entity;
 
 architecture a of axi_stream_slave is
 begin
-  main : process
-    variable reply_msg, msg : msg_t;
-    variable msg_type : message_type_t;
-  begin
-    receive(event, slave.p_actor, msg);
-    msg_type := pop_message_type(msg.data);
+  -- main : process
+  --   variable reply_msg, msg : msg_t;
+  --   variable msg_type : message_type_t;
+  -- begin
+  --   receive(event, slave.p_actor, msg);
+  --   msg_type := pop_message_type(msg.data);
 
-    if msg_type = stream_read_msg then
-      tready <= '1';
-      wait until (tvalid and tready) = '1' and rising_edge(aclk);
-      tready <= '0';
+  --   if msg_type = stream_read_msg then
+  --     tready <= '1';
+  --     wait until (tvalid and tready) = '1' and rising_edge(aclk);
+  --     tready <= '0';
 
-      if tlast /= '1' then
-        fail(slave.p_fail_log, "Expected tlast = '1' in single transaction write got " & to_string(tlast));
-      end if;
+  --     if tlast /= '1' then
+  --       fail(slave.p_fail_log, "Expected tlast = '1' in single transaction write got" & to_string(tlast));
+  --     end if;
 
-      reply_msg := create;
-      push_std_ulogic_vector(reply_msg.data, tdata);
-      reply(event, msg, reply_msg);
-    else
-      unexpected_message_type(msg_type);
-    end if;
+  --     reply_msg := create;
+  --     push_std_ulogic_vector(reply_msg.data, tdata);
+  --     reply(event, msg, reply_msg);
+  --   else
+  --     unexpected_message_type(msg_type);
+  --   end if;
 
-  end process;
+  -- end process;
 
 end architecture;
