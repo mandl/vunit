@@ -65,7 +65,8 @@ def add_vhdl_builtins(library,
         files += [join("logging", "src", "log_api.vhd"),
                   join("logging", "src", "log_formatting.vhd"),
                   join("logging", "src", "log.vhd"),
-                  join("logging", "src", "log_types.vhd")]
+                  join("logging", "src", "log_types.vhd"),
+                  join("logging", "src", "ansi_pkg.vhd")]
 
         files += [join("dictionary", "src", "dictionary.vhd")]
 
