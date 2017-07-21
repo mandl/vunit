@@ -286,7 +286,7 @@ in your VUnit Git repository? You have to do this first if installing using setu
             self._vunit_lib.add_source_files(join(VHDL_PATH, file_name))
 
         self._add_data_types()
-
+        self._add_files(join(VHDL_PATH, "logging2", "src", "*.vhd"))
 
 def osvvm_is_installed():
     """
