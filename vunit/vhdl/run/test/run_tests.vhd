@@ -7,19 +7,15 @@
 -- Copyright (c) 2014-2016, Lars Asplund lars.anders.asplund@gmail.com
 
 library vunit_lib;
-use vunit_lib.lang.all;
 use vunit_lib.string_ops.all;
-use vunit_lib.log_types_pkg.all;
-use vunit_lib.log_special_types_pkg.all;
-use vunit_lib.log_pkg.all;
-use vunit_lib.check_types_pkg.all;
-use vunit_lib.check_special_types_pkg.all;
+use vunit_lib.logger_pkg.all;
+use vunit_lib.log2_pkg.all;
+use vunit_lib.checker_pkg.all;
 use vunit_lib.check_pkg.all;
 use std.textio.all;
 use vunit_lib.run_types_pkg.all;
-use vunit_lib.run_special_types_pkg.all;
-use vunit_lib.run_base_pkg.all;
 use vunit_lib.run_pkg.all;
+use vunit_lib.runner_pkg.all;
 use vunit_lib.core_pkg;
 
 entity run_tests is
@@ -31,6 +27,12 @@ architecture test_fixture of run_tests is
   signal test_process_completed : boolean := false;
   signal start_locking_process : boolean := false;
   signal start_test_runner_watchdog, test_runner_watchdog_completed : boolean := false;
+
+  impure function get_phase return runner_phase_t is
+  begin
+    return get_phase(runner_state);
+  end;
+
 begin
   test_process : process is
     variable t_start : time;
@@ -139,76 +141,24 @@ begin
       info(dashes(s'range) & LF & s & LF & dashes(s'range) & LF);
     end banner;
 
-    procedure verify_log_file (
-      constant log_file_name : in string;
-      variable entries   : inout line_vector;
-      constant start : in natural;
-      constant stop : in natural;
-      constant src : string := "";
-      constant line_num  : in natural := 0;
-      constant file_name : in string := "") is
-      file f : text;
-      variable l : line;
-      variable status : file_open_status;
-      variable pass : boolean;
-      variable fields : lines_t := new line_vector(0 to 10);
-    begin
-      file_open(status, f, log_file_name, read_mode);
-      check(status = open_ok, "Failed opening " & log_file_name & " (" & file_open_status'image(status) & ").");
-      if status = open_ok then
-        for i in 1 to start - 1 loop
-          check_false(pass, endfile(f), "End of log file when seeking for start line");
-          exit when not pass;
-          readline(f, l);
-        end loop;
-        for i in start to stop loop
-          check_false(pass, endfile(f), "End of log file when expecting log entry" & LF & entries(i).all);
-          exit when not pass;
-          readline(f, l);
-          fields := split(l.all, ",");
-          check(fields(6).all = entries(i).all, "Expected log entry" & LF & entries(i).all & LF & "but got" & LF & fields(6).all);
-          if (entries(i).all(1 to 8) = "Unlocked") or (entries(i).all(1 to 6) = "Locked") then
-            check(fields(5).all = src, "Expected src = " & src & " but got " & fields(5).all);
-          end if;
-          if (entries(i).all(1 to 11) = "Test case: ") then
-            check(fields(2).all = "info", "Expected info level on test case name log entry.");
-          else
-            check(fields(2).all = "debug", "Expected debug level on all but test case name log entries.");
-          end if;
-          if file_name /= "" then
-            check(fields(3).all = file_name, "Expected file name = " & file_name & " but got " & fields(3).all);
-            pass := fields(4).all = natural'image(line_num);
-            check(pass, "Expected line num = " & natural'image(line_num) & " but got " & fields(4).all);
-          end if;
-        end loop;
-      end if;
-      file_close(f);
-      deallocate(fields);
-    end verify_log_file;
-
     procedure test_case_setup is
     begin
-      set_phase(test_runner_entry);
-      runner.phase <= test_runner_entry;
+      runner_init(runner_state);
+      runner.phase <= get_phase(runner_state);
       runner.exit_without_errors <= false;
+      runner.exit_simulation <= false;
     end procedure test_case_setup;
 
     variable checker_stat, test_checker_stat : checker_stat_t;
     variable i : natural;
     variable n_run_a, n_run_b, n_run_c : natural := 0;
     variable t_start : time;
-    variable test_trace_logger : logger_t;
-    variable test_trace_logger_cfg : logger_cfg_export_t;
-    variable log_entries : line_vector(1 to 100);
-    variable test_checker : checker_t;
-    variable c : checker_t;
-    variable checker_cfg : checker_cfg_t;
+    constant test_checker : checker_t := new_checker("test_checker");
+    constant c : checker_t := new_checker("checker_t", default_log_level => failure);
     variable runner_cfg : line;
     variable passed : boolean;
-  begin
-    logger_init(runner_trace_logger, file_name => output_path & "test_runner_trace.csv");
-    checker_init(c, display_format => verbose, default_src => "Test Runner", stop_level => error, file_name => output_path & "error.csv");
 
+  begin
     banner("Should extract single enabled test case from input string");
     test_case_setup;
     test_runner_setup(runner, "enabled_test_cases : Should foo");
@@ -545,150 +495,151 @@ begin
     ---------------------------------------------------------------------------
     banner("Should have a trace log where source of locking/unlocking commands can be logged. All but test case name entries should have the debug level.");
     test_case_setup;
-    logger_init(runner_trace_logger, "", output_path & "trace.txt", verbose, verbose_csv);
 
+    mock(runner_trace_logger);
     start_locking_process <= true;
 
-    for i in log_entries'range loop
-      deallocate(log_entries(i));
-    end loop;
-
-    write(log_entries(1), string'("Locked test runner setup phase entry gate."));
-    write(log_entries(2), string'("Locked test runner setup phase exit gate."));
-    write(log_entries(3), string'("Locked test suite setup phase entry gate."));
-    write(log_entries(4), string'("Locked test suite setup phase exit gate."));
     wait for 1 ns;
+    check_log(runner_trace_logger, "Locked test runner setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test runner setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test suite setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test suite setup phase exit gate.", debug);
+    check_no_log(runner_trace_logger);
 
     test_runner_setup(runner, "enabled_test_cases : test a");
-    write(log_entries(5), string'("Entering test runner setup phase."));
-    write(log_entries(6), string'("Halting on test runner setup phase entry gate."));
-    write(log_entries(7), string'("Unlocked test runner setup phase entry gate."));
-    write(log_entries(8), string'("Passed test runner setup phase entry gate."));
-    write(log_entries(9), string'("Halting on test runner setup phase exit gate."));
-    write(log_entries(10), string'("Unlocked test runner setup phase exit gate."));
-    write(log_entries(11), string'("Passed test runner setup phase exit gate."));
-    write(log_entries(12), string'("Entering test suite setup phase."));
-    write(log_entries(13), string'("Halting on test suite setup phase entry gate."));
-    write(log_entries(14), string'("Unlocked test suite setup phase entry gate."));
-    write(log_entries(15), string'("Passed test suite setup phase entry gate."));
+    check_log(runner_trace_logger, "Entering test runner setup phase.", debug);
+    check_log(runner_trace_logger, "Halting on test runner setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test runner setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Passed test runner setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Halting on test runner setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test runner setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Passed test runner setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Entering test suite setup phase.", debug);
+    check_log(runner_trace_logger, "Halting on test suite setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test suite setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Passed test suite setup phase entry gate.", debug);
+    check_no_log(runner_trace_logger);
 
     test_suite_setup_entry_gate(runner);
-    write(log_entries(16), string'("Passed test suite setup phase entry gate."));
-    write(log_entries(17), string'("Halting on test suite setup phase exit gate."));
-
-    write(log_entries(18), string'("Locked test runner cleanup phase exit gate."));
-    write(log_entries(19), string'("Locked test case setup phase entry gate."));
-    write(log_entries(20), string'("Locked test case setup phase exit gate."));
-    write(log_entries(21), string'("Locked test case phase entry gate."));
-    write(log_entries(22), string'("Locked test case phase exit gate."));
-    write(log_entries(23), string'("Locked test case cleanup phase entry gate."));
-    write(log_entries(24), string'("Locked test case cleanup phase exit gate."));
-    write(log_entries(25), string'("Locked test suite cleanup phase entry gate."));
-    write(log_entries(26), string'("Locked test suite cleanup phase exit gate."));
-    write(log_entries(27), string'("Locked test runner cleanup phase entry gate."));
-    write(log_entries(28), string'("Locked test runner cleanup phase exit gate."));
+    wait for 1 ns;
 
     test_suite_setup_exit_gate(runner);
-    write(log_entries(29), string'("Unlocked test suite setup phase exit gate."));
-    write(log_entries(30), string'("Passed test suite setup phase exit gate."));
+    check_log(runner_trace_logger, "Passed test suite setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Halting on test suite setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test case setup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test case setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test case phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test case phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test case cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test case cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test suite cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test suite cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Locked test runner cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Locked test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test suite setup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Passed test suite setup phase exit gate.", debug);
+    check_no_log(runner_trace_logger);
 
     while test_suite loop
-      write(log_entries(31), string'("Entering test case setup phase."));
+      check_only_log(runner_trace_logger, "Entering test case setup phase.", debug);
 
       test_case_setup_entry_gate(runner);
-      write(log_entries(32), string'("Halting on test case setup phase entry gate."));
-      write(log_entries(33), string'("Unlocked test case setup phase entry gate."));
-      write(log_entries(34), string'("Passed test case setup phase entry gate."));
+      check_log(runner_trace_logger, "Halting on test case setup phase entry gate.", debug);
+      check_log(runner_trace_logger, "Unlocked test case setup phase entry gate.", debug);
+      check_log(runner_trace_logger, "Passed test case setup phase entry gate.", debug);
+      check_no_log(runner_trace_logger);
+
       wait for 1 ns;
       test_case_setup_exit_gate(runner);
-      write(log_entries(35), string'("Halting on test case setup phase exit gate."));
-      write(log_entries(36), string'("Unlocked test case setup phase exit gate."));
-      write(log_entries(37), string'("Passed test case setup phase exit gate."));
+      check_log(runner_trace_logger, "Halting on test case setup phase exit gate.", debug);
+      check_log(runner_trace_logger, "Unlocked test case setup phase exit gate.", debug);
+      check_log(runner_trace_logger, "Passed test case setup phase exit gate.", debug);
+      check_no_log(runner_trace_logger);
 
       while in_test_case loop
-        write(log_entries(38), string'("Entering test case phase."));
+        check_only_log(runner_trace_logger, "Entering test case phase.", debug);
 
         test_case_entry_gate(runner);
-        write(log_entries(39), string'("Halting on test case phase entry gate."));
-        write(log_entries(40), string'("Unlocked test case phase entry gate."));
-        write(log_entries(41), string'("Passed test case phase entry gate."));
+        check_log(runner_trace_logger, "Halting on test case phase entry gate.", debug);
+        check_log(runner_trace_logger, "Unlocked test case phase entry gate.", debug);
+        check_log(runner_trace_logger, "Passed test case phase entry gate.", debug);
+        check_no_log(runner_trace_logger);
+
         if run("test a") then
           wait for 1 ns;
         end if;
-        write(log_entries(42), string'("Test case: test a"));
+        check_only_log(runner_trace_logger, "Test case: test a", info);
+
         test_case_exit_gate(runner);
-        write(log_entries(43), string'("Halting on test case phase exit gate."));
-        write(log_entries(44), string'("Unlocked test case phase exit gate."));
-        write(log_entries(45), string'("Passed test case phase exit gate."));
+        check_log(runner_trace_logger, "Halting on test case phase exit gate.", debug);
+        check_log(runner_trace_logger, "Unlocked test case phase exit gate.", debug);
+        check_log(runner_trace_logger, "Passed test case phase exit gate.", debug);
+        check_no_log(runner_trace_logger);
       end loop;
-      write(log_entries(46), string'("Entering test case cleanup phase."));
+      check_only_log(runner_trace_logger, "Entering test case cleanup phase.", debug);
 
       test_case_cleanup_entry_gate(runner);
-      write(log_entries(47), string'("Halting on test case cleanup phase entry gate."));
-      write(log_entries(48), string'("Unlocked test case cleanup phase entry gate."));
-      write(log_entries(49), string'("Passed test case cleanup phase entry gate."));
+      check_log(runner_trace_logger, "Halting on test case cleanup phase entry gate.", debug);
+      check_log(runner_trace_logger, "Unlocked test case cleanup phase entry gate.", debug);
+      check_log(runner_trace_logger, "Passed test case cleanup phase entry gate.", debug);
+      check_no_log(runner_trace_logger);
+
       wait for 1 ns;
       test_case_cleanup_exit_gate(runner);
-      write(log_entries(50), string'("Halting on test case cleanup phase exit gate."));
-      write(log_entries(51), string'("Unlocked test case cleanup phase exit gate."));
-      write(log_entries(52), string'("Passed test case cleanup phase exit gate."));
 
+      check_log(runner_trace_logger, "Halting on test case cleanup phase exit gate.", debug);
+      check_log(runner_trace_logger, "Unlocked test case cleanup phase exit gate.", debug);
+      check_log(runner_trace_logger, "Passed test case cleanup phase exit gate.", debug);
+      check_no_log(runner_trace_logger);
     end loop;
-    write(log_entries(53), string'("Entering test suite cleanup phase."));
+    check_only_log(runner_trace_logger, "Entering test suite cleanup phase.", debug);
 
     test_suite_cleanup_entry_gate(runner);
-    write(log_entries(54), string'("Halting on test suite cleanup phase entry gate."));
-    write(log_entries(55), string'("Unlocked test suite cleanup phase entry gate."));
-    write(log_entries(56), string'("Passed test suite cleanup phase entry gate."));
+    check_log(runner_trace_logger, "Halting on test suite cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test suite cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Passed test suite cleanup phase entry gate.", debug);
+    check_no_log(runner_trace_logger);
+
     wait for 1 ns;
     test_suite_cleanup_exit_gate(runner);
-    write(log_entries(57), string'("Halting on test suite cleanup phase exit gate."));
-    write(log_entries(58), string'("Unlocked test suite cleanup phase exit gate."));
-    write(log_entries(59), string'("Passed test suite cleanup phase exit gate."));
+    check_log(runner_trace_logger, "Halting on test suite cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test suite cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Passed test suite cleanup phase exit gate.", debug);
+    check_no_log(runner_trace_logger);
 
     test_runner_cleanup(runner, disable_simulation_exit => true);
-    write(log_entries(60), string'("Entering test runner cleanup phase."));
-    write(log_entries(61), string'("Halting on test runner cleanup phase entry gate."));
-    write(log_entries(62), string'("Unlocked test runner cleanup phase entry gate."));
-    write(log_entries(63), string'("Passed test runner cleanup phase entry gate."));
-    write(log_entries(64), string'("Halting on test runner cleanup phase exit gate."));
-    write(log_entries(65), string'("Unlocked test runner cleanup phase exit gate."));
-    write(log_entries(66), string'("Unlocked test runner cleanup phase exit gate."));
-    write(log_entries(67), string'("Passed test runner cleanup phase exit gate."));
-    write(log_entries(68), string'("Entering test runner exit phase."));
-
-    verify_log_file(output_path & "trace.txt", log_entries, 1, 17, "locking_proc1");
-    verify_log_file(output_path & "trace.txt", log_entries, 18, 18, "locking_proc2");
-    verify_log_file(output_path & "trace.txt", log_entries, 19, 65, "locking_proc1");
-    verify_log_file(output_path & "trace.txt", log_entries, 66, 66, "locking_proc2");
-    verify_log_file(output_path & "trace.txt", log_entries, 67, 68, "locking_proc1");
+    check_log(runner_trace_logger, "Entering test runner cleanup phase.", debug);
+    check_log(runner_trace_logger, "Halting on test runner cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test runner cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Passed test runner cleanup phase entry gate.", debug);
+    check_log(runner_trace_logger, "Halting on test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Unlocked test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Passed test runner cleanup phase exit gate.", debug);
+    check_log(runner_trace_logger, "Entering test runner exit phase.", debug);
+    unmock(runner_trace_logger);
 
     ---------------------------------------------------------------------------
     banner("Should be possible to track (un)lock commands to file and line number");
     test_case_setup;
-    logger_init(runner_trace_logger, "", output_path & "trace2.txt", verbose, verbose_csv);
 
     test_runner_setup(runner, "enabled_test_cases : test a");
+    mock(runner_trace_logger);
     lock_entry(runner, test_case_setup, "me", 17, "foo1.vhd");
     lock_exit(runner, test_case_setup, "me", 18, "foo2.vhd");
     unlock_entry(runner, test_case_setup, "me", 19, "foo3.vhd");
     unlock_exit(runner, test_case_setup, "me", 20, "foo4.vhd");
-
-    for i in log_entries'range loop
-      deallocate(log_entries(i));
-    end loop;
-
-    write(log_entries(6), string'("Locked test case setup phase entry gate."));
-    write(log_entries(7), string'("Locked test case setup phase exit gate."));
-    write(log_entries(8), string'("Unlocked test case setup phase entry gate."));
-    write(log_entries(9), string'("Unlocked test case setup phase exit gate."));
-
+    check_log(runner_trace_logger, "Locked test case setup phase entry gate.", debug,
+              line_num => 17, file_name => "foo1.vhd");
+    check_log(runner_trace_logger, "Locked test case setup phase exit gate.", debug,
+              line_num => 18, file_name => "foo2.vhd");
+    check_log(runner_trace_logger, "Unlocked test case setup phase entry gate.", debug,
+              line_num => 19, file_name => "foo3.vhd");
+    check_log(runner_trace_logger, "Unlocked test case setup phase exit gate.", debug,
+              line_num => 20, file_name => "foo4.vhd");
+    unmock(runner_trace_logger);
     test_runner_cleanup(runner, disable_simulation_exit => true);
-
-    verify_log_file(output_path & "trace2.txt", log_entries, 6, 6, "me", 17, "foo1.vhd");
-    verify_log_file(output_path & "trace2.txt", log_entries, 7, 7, "me", 18, "foo2.vhd");
-    verify_log_file(output_path & "trace2.txt", log_entries, 8, 8, "me", 19, "foo3.vhd");
-    verify_log_file(output_path & "trace2.txt", log_entries, 9, 9, "me", 20, "foo4.vhd");
 
     ---------------------------------------------------------------------------
     banner("Should be possible to identify fatal exits in cleanup code");
@@ -728,7 +679,6 @@ begin
     banner("Should be possible to time-out a test runner that is stuck");
     test_case_setup;
     test_runner_setup(runner, "enabled_test_cases : test a,, test b,, test c,, test d");
-    checker_init(file_name =>output_path & "error.csv");
     start_test_runner_watchdog <= true;
     wait for 0 ns;
     start_test_runner_watchdog <= false;
@@ -750,7 +700,6 @@ begin
     ---------------------------------------------------------------------------
     banner("Should be possible to externally figure out if the test runner terminated with or errors.");
     test_case_setup;
-    checker_init(test_checker, default_src => "Test Checker", file_name => output_path & "error.csv");
     test_runner_setup(runner, "enabled_test_cases : test a,, test b,, test c,, test d");
     check(test_checker, false, "Should fail");
     get_checker_stat(test_checker, test_checker_stat);
@@ -764,47 +713,47 @@ begin
     while test_suite loop
       check_implication(c, i = 0, running_test_case = "", "Expected running test case to be """"");
       if run("Should a") then
-        check(c, running_test_case = "Should a", "Expected running test case to be ""Should a""");
+        check_equal(c, running_test_case, "Should a", "Expected running test case to be ""Should a""");
       elsif run("Should b") then
-        check(c, running_test_case = "Should b", "Expected running test case to be ""Should b""");
+        check_equal(c, running_test_case, "Should b", "Expected running test case to be ""Should b""");
       elsif run("Should c") then
-        check(c, running_test_case = "Should c", "Expected running test case to be ""Should c""");
+        check_equal(c, running_test_case, "Should c", "Expected running test case to be ""Should c""");
       else
-        check(c, running_test_case = "", "Expected running test case to be """"");
+        check_equal(c, running_test_case, "", "Expected running test case to be """"");
       end if;
       i := i + 1;
     end loop;
     test_runner_cleanup(runner, disable_simulation_exit => true);
 
     ---------------------------------------------------------------------------
-    banner("Should set stop level to the default level but maintain all other setting when Python runner is active");
-    test_case_setup;
-    checker_init(warning, "my_default_checker", output_path & "problems.csv", verbose, level, failure, ';');
-    test_runner_setup(runner, "active python runner : true, fake active python runner : true");
-    get_checker_cfg(checker_cfg);
-    check(c, checker_cfg.default_level = warning, "Expected default level to be warning");
-    check(c, checker_cfg.logger_cfg.log_default_src.all = "my_default_checker", "Expected default src to be ""my_default_checker""");
-    passed := checker_cfg.logger_cfg.log_file_name.all = output_path & "problems.csv";
-    check(c, passed, "Expected file name to be """ & output_path & "problems.csv""");
-    check(c, checker_cfg.logger_cfg.log_display_format = verbose, "Expected display format to be verbose");
-    check(c, checker_cfg.logger_cfg.log_file_format = level, "Expected file format to be level");
-    check(c, checker_cfg.logger_cfg.log_stop_level = warning, "Expected stop level to be warning");
-    check(c, checker_cfg.logger_cfg.log_separator = ';', "Expected separator to be ';'");
+    -- banner("Should set stop level to the default level but maintain all other setting when Python runner is active");
+    -- test_case_setup;
+    -- checker_init(warning, "my_default_checker", output_path & "problems.csv", verbose, level, failure, ';');
+    -- test_runner_setup(runner, "active python runner : true, fake active python runner : true");
+    -- get_checker_cfg(checker_cfg);
+    -- check(c, checker_cfg.default_level = warning, "Expected default level to be warning");
+    -- check(c, checker_cfg.logger_cfg.log_default_src.all = "my_default_checker", "Expected default src to be ""my_default_checker""");
+    -- passed := checker_cfg.logger_cfg.log_file_name.all = output_path & "problems.csv";
+    -- check(c, passed, "Expected file name to be """ & output_path & "problems.csv""");
+    -- check(c, checker_cfg.logger_cfg.log_display_format = verbose, "Expected display format to be verbose");
+    -- check(c, checker_cfg.logger_cfg.log_file_format = level, "Expected file format to be level");
+    -- check(c, checker_cfg.logger_cfg.log_stop_level = warning, "Expected stop level to be warning");
+    -- check(c, checker_cfg.logger_cfg.log_separator = ';', "Expected separator to be ';'");
 
     ---------------------------------------------------------------------------
-    banner("Should leave stop level as is when Python runner is inactive");
-    test_case_setup;
-    checker_init(warning, "my_default_checker", output_path & "problems.csv", verbose, level, failure, ';');
-    test_runner_setup(runner, "active python runner : false");
-    get_checker_cfg(checker_cfg);
-    check(c, checker_cfg.default_level = warning, "Expected default level to be warning");
-    check(c, checker_cfg.logger_cfg.log_default_src.all = "my_default_checker", "Expected default src to be ""my_default_checker""");
-    passed := checker_cfg.logger_cfg.log_file_name.all = output_path & "problems.csv";
-    check(c, passed, "Expected file name to be """ & output_path & "problems.csv""");
-    check(c, checker_cfg.logger_cfg.log_display_format = verbose, "Expected display format to be verbose");
-    check(c, checker_cfg.logger_cfg.log_file_format = level, "Expected file format to be level");
-    check(c, checker_cfg.logger_cfg.log_stop_level = failure, "Expected stop level to be failure");
-    check(c, checker_cfg.logger_cfg.log_separator = ';', "Expected separator to be ';'");
+    -- banner("Should leave stop level as is when Python runner is inactive");
+    -- test_case_setup;
+    -- checker_init(warning, "my_default_checker", output_path & "problems.csv", verbose, level, failure, ';');
+    -- test_runner_setup(runner, "active python runner : false");
+    -- get_checker_cfg(checker_cfg);
+    -- check(c, checker_cfg.default_level = warning, "Expected default level to be warning");
+    -- check(c, checker_cfg.logger_cfg.log_default_src.all = "my_default_checker", "Expected default src to be ""my_default_checker""");
+    -- passed := checker_cfg.logger_cfg.log_file_name.all = output_path & "problems.csv";
+    -- check(c, passed, "Expected file name to be """ & output_path & "problems.csv""");
+    -- check(c, checker_cfg.logger_cfg.log_display_format = verbose, "Expected display format to be verbose");
+    -- check(c, checker_cfg.logger_cfg.log_file_format = level, "Expected file format to be level");
+    -- check(c, checker_cfg.logger_cfg.log_stop_level = failure, "Expected stop level to be failure");
+    -- check(c, checker_cfg.logger_cfg.log_separator = ';', "Expected separator to be ';'");
 
     ---------------------------------------------------------------------------
     banner("Should be able to parse runner configuration using convenience functions");
@@ -839,6 +788,8 @@ begin
     info("Number of checks: " & natural'image(checker_stat.n_checks));
     info("Number of passing checks: " & natural'image(checker_stat.n_passed));
     info("Number of failing checks: " & natural'image(checker_stat.n_failed));
+
+    assert checker_stat.n_failed = 0 report "Expected no failed checks";
 
     core_pkg.setup(output_path & "vunit_results");
     core_pkg.test_suite_done;

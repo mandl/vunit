@@ -8,7 +8,6 @@ use std.textio.all;
 
 library vunit_lib;
 use vunit_lib.run_pkg.all;
-use vunit_lib.run_base_pkg.all;
 use vunit_lib.dict_pkg.all;
 
 use work.logger_pkg.all;

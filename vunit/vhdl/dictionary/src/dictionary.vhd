@@ -7,8 +7,8 @@
 -- Copyright (c) 2014-2016, Lars Asplund lars.anders.asplund@gmail.com
 
 use work.string_ops.all;
-use work.lang.all;
-use work.log_types_pkg.all;
+use work.logger_pkg.all;
+use work.checker_pkg.all;
 use work.check_pkg.all;
 use std.textio.all;
 
@@ -27,6 +27,8 @@ package dictionary is
     constant d   : frozen_dictionary_t;
     constant key : string)
     return boolean;
+
+  constant dictionary_checker : checker_t := new_checker("dictionary");
 
 end package dictionary;
 
@@ -66,7 +68,7 @@ package body dictionary is
           return;
         end if;
       else
-        check(false, "Corrupt frozen dictionary item """ & key_value_pairs(i).all & """ in """ & d & """.", level => failure);
+        check(dictionary_checker, false, "Corrupt frozen dictionary item """ & key_value_pairs(i).all & """ in """ & d & """.", level => failure);
         write(value, string'("will return when log is mocked out during unit test."));
         return;
       end if;
@@ -88,7 +90,7 @@ package body dictionary is
     if status = valid_value then
       return value.all;
     else
-      check(false, "Key error! """ & key & """ wasn't found in """ & d & """.", level => failure);
+      check(dictionary_checker, false, "Key error! """ & key & """ wasn't found in """ & d & """.", level => failure);
       return "will return when log is mocked out during unit test.";
     end if;
 
