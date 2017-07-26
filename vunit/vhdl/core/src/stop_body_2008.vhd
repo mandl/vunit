@@ -7,6 +7,9 @@
 package body stop_pkg is
   procedure stop(status : integer) is
   begin
+    if status /= 0 then
+      report "Stopping simulation with status " & integer'image(status) severity failure;
+    end if;
     std.env.stop(status);
   end procedure;
 end package body;
