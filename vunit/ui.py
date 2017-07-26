@@ -844,11 +844,11 @@ avoid location preprocessing of other functions sharing name with a VUnit log or
             xml = report.to_junit_xml_str()
             ostools.write_file(self._args.xunit_xml, xml)
 
-    def add_builtins(self, mock_lang=False, mock_log=False):
+    def add_builtins(self):
         """
         Add vunit VHDL builtin libraries
         """
-        self._builtins.add_vhdl_builtins(mock_lang, mock_log)
+        self._builtins.add_vhdl_builtins()
 
     def add_com(self):
         """

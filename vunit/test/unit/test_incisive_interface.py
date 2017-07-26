@@ -460,7 +460,7 @@ define work "%s/libraries/work"
              '-access +r',
              '-input "@run"',
              '-input "@catch {if {#vunit_pkg::__runner__.exit_without_errors == 1} {exit 0} else {exit 42}}"',
-             '-input "@catch {if {#run_base_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
+             '-input "@catch {if {#run_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
              '-top lib.ent:arch'])
 
         self.assertEqual(
@@ -483,7 +483,7 @@ define work "%s/libraries/work"
              '-access +r',
              '-input "@run"',
              '-input "@catch {if {#vunit_pkg::__runner__.exit_without_errors == 1} {exit 0} else {exit 42}}"',
-             '-input "@catch {if {#run_base_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
+             '-input "@catch {if {#run_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
              '-top lib.ent:arch'])
 
     @mock.patch("vunit.incisive_interface.IncisiveInterface.find_cds_root_virtuoso")
@@ -536,7 +536,7 @@ define work "%s/libraries/work"
              '-access +r',
              '-input "@run"',
              '-input "@catch {if {#vunit_pkg::__runner__.exit_without_errors == 1} {exit 0} else {exit 42}}"',
-             '-input "@catch {if {#run_base_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
+             '-input "@catch {if {#run_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
              '-top lib.modulename:sv'])
 
         self.assertEqual(
@@ -559,7 +559,7 @@ define work "%s/libraries/work"
              '-access +r',
              '-input "@run"',
              '-input "@catch {if {#vunit_pkg::__runner__.exit_without_errors == 1} {exit 0} else {exit 42}}"',
-             '-input "@catch {if {#run_base_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
+             '-input "@catch {if {#run_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
              '-top lib.modulename:sv'])
 
     @mock.patch("vunit.incisive_interface.IncisiveInterface.find_cds_root_virtuoso")
@@ -680,7 +680,7 @@ define work "%s/libraries/work"
              '-access +r',
              '-input "@run"',
              '-input "@catch {if {#vunit_pkg::__runner__.exit_without_errors == 1} {exit 0} else {exit 42}}"',
-             '-input "@catch {if {#run_base_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
+             '-input "@catch {if {#run_pkg.runner.exit_without_errors == \\"TRUE\\"} {exit 0} else {exit 42}}"',
              '-top lib.modulename:sv'])
 
     @mock.patch("vunit.incisive_interface.IncisiveInterface.find_cds_root_virtuoso")

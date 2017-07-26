@@ -275,7 +275,7 @@ proc vunit_load {{{{vsim_extra_args ""}}}} {{
     }}
 
     set no_finished_signal [catch {{examine -internal {{/vunit_finished}}}}]
-    set no_vhdl_test_runner_exit [catch {{examine -internal {{/run_base_pkg/runner.exit_simulation}}}}]
+    set no_vhdl_test_runner_exit [catch {{examine -internal {{/run_pkg/runner.exit_simulation}}}}]
     set no_verilog_test_runner_exit [catch {{examine -internal {{/vunit_pkg/__runner__}}}}]
 
     if {{${{no_finished_signal}} && ${{no_vhdl_test_runner_exit}} && ${{no_verilog_test_runner_exit}}}}  {{
@@ -318,7 +318,7 @@ proc _vunit_run {} {
     onbreak {on_break}
 
     set has_vunit_finished_signal [expr ![catch {examine -internal {/vunit_finished}}]]
-    set has_vhdl_runner [expr ![catch {examine -internal {/run_base_pkg/runner.exit_simulation}}]]
+    set has_vhdl_runner [expr ![catch {examine -internal {/run_pkg/runner.exit_simulation}}]]
     set has_verilog_runner [expr ![catch {examine -internal {/vunit_pkg/__runner__}}]]
 
     if {${has_vunit_finished_signal}} {
@@ -326,8 +326,8 @@ proc _vunit_run {} {
         set status_boolean {/vunit_finished}
         set true_value TRUE
     } elseif {${has_vhdl_runner}} {
-        set exit_boolean {/run_base_pkg/runner.exit_simulation}
-        set status_boolean {/run_base_pkg/runner.exit_without_errors}
+        set exit_boolean {/run_pkg/runner.exit_simulation}
+        set status_boolean {/run_pkg/runner.exit_without_errors}
         set true_value TRUE
     } elseif {${has_verilog_runner}} {
         set exit_boolean {/vunit_pkg/__runner__.exit_simulation}

@@ -7,14 +7,30 @@
 --
 -- Copyright (c) 2014-2016, Lars Asplund lars.anders.asplund@gmail.com
 
-use work.check_types_pkg.checker_stat_t;
-use work.run_base_pkg.all;
+use work.checker_pkg.checker_stat_t;
+use work.log2_pkg.all;
+use work.logger_pkg.all;
+use work.runner_pkg.all;
 use work.run_types_pkg.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
 
 package run_pkg is
+  signal runner : runner_sync_t := (phase => test_runner_entry,
+                                    locks => ((false, false),
+                                              (false, false),
+                                              (false, false),
+                                              (false, false),
+                                              (false, false),
+                                              (false, false),
+                                              (false, false)),
+                                    exit_without_errors => false,
+                                    exit_simulation => false);
+
+  constant runner_trace_logger : logger_t := new_logger("runner");
+  constant runner_state : runner_t := new_runner;
+
   procedure test_runner_setup (
     signal runner : inout runner_sync_t;
     constant runner_cfg : in string := runner_cfg_default);

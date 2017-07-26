@@ -232,7 +232,7 @@ proc vunit_load {{}} {{
     global builtinbreakassertlevel
     set builtinbreakassertlevel $breakassertlevel
 
-    set no_vhdl_test_runner_exit [catch {{examine /run_base_pkg/runner.exit_simulation}}]
+    set no_vhdl_test_runner_exit [catch {{examine /run_pkg/runner.exit_simulation}}]
     if {{${{no_vhdl_test_runner_exit}}}}  {{
         echo {{Error: No vunit test runner package used}}
         return 1
@@ -252,10 +252,10 @@ proc vunit_load {{}} {{
         """
         return """
 proc vunit_run {} {
-    set has_vhdl_runner [expr ![catch {examine /run_base_pkg/runner}]]
+    set has_vhdl_runner [expr ![catch {examine /run_pkg/runner}]]
 
     if {${has_vhdl_runner}} {
-        set status_boolean "/run_base_pkg/runner.exit_without_errors"
+        set status_boolean "/run_pkg/runner.exit_without_errors"
         set true_value true
     } else {
         echo "No finish mechanism detected"
