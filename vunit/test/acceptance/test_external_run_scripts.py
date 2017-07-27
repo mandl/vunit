@@ -47,11 +47,11 @@ class TestExternalRunScripts(unittest.TestCase):
                      [("passed", "lib.tb_dut.Test that pass"),
                       ("failed", "lib.tb_dut.Test that fail")])
 
-    def test_vhdl_logging_example_project(self):
-        self.check(join(ROOT, "examples", "vhdl", "logging", "compile.py"), args=["--compile"])
+    # def test_vhdl_logging_example_project(self):
+    #     self.check(join(ROOT, "examples", "vhdl", "logging", "compile.py"), args=["--compile"])
 
-    def test_vhdl_check_example_project(self):
-        self.check(join(ROOT, "examples", "vhdl", "check", "run.py"))
+    # def test_vhdl_check_example_project(self):
+    #     self.check(join(ROOT, "examples", "vhdl", "check", "run.py"))
 
     def test_vhdl_generate_tests_example_project(self):
         self.check(join(ROOT, "examples", "vhdl", "generate_tests", "run.py"))
@@ -90,17 +90,17 @@ class TestExternalRunScripts(unittest.TestCase):
                       ("failed", "lib.tb_example.Test that a failing test case actually fails"),
                       ("failed", "lib.tb_example.Test that a test case that takes too long time fails with a timeout")])
 
-    def test_vhdl_osvvm_integration_example_project(self):
-        self.check(join(ROOT, "examples", "vhdl", "osvvm_integration", "run.py"), exit_code=1)
-        check_report(self.report_file,
-                     [("passed", "lib.tb_alertlog_demo_global_with_comments.Test passing alerts"),
-                      ("passed", "lib.tb_alertlog_demo_hierarchy_with_comments.Test passing alerts"),
-                      ("passed", "lib.tb_alertlog_demo_global.Test passing alerts"),
-                      ("passed", "lib.tb_alertlog_demo_hierarchy.Test passing alerts"),
-                      ("failed", "lib.tb_alertlog_demo_global_with_comments.Test failing alerts"),
-                      ("failed", "lib.tb_alertlog_demo_hierarchy_with_comments.Test failing alerts"),
-                      ("failed", "lib.tb_alertlog_demo_global.Test failing alerts"),
-                      ("failed", "lib.tb_alertlog_demo_hierarchy.Test failing alerts")])
+    # def test_vhdl_osvvm_integration_example_project(self):
+    #     self.check(join(ROOT, "examples", "vhdl", "osvvm_integration", "run.py"), exit_code=1)
+    #     check_report(self.report_file,
+    #                  [("passed", "lib.tb_alertlog_demo_global_with_comments.Test passing alerts"),
+    #                   ("passed", "lib.tb_alertlog_demo_hierarchy_with_comments.Test passing alerts"),
+    #                   ("passed", "lib.tb_alertlog_demo_global.Test passing alerts"),
+    #                   ("passed", "lib.tb_alertlog_demo_hierarchy.Test passing alerts"),
+    #                   ("failed", "lib.tb_alertlog_demo_global_with_comments.Test failing alerts"),
+    #                   ("failed", "lib.tb_alertlog_demo_hierarchy_with_comments.Test failing alerts"),
+    #                   ("failed", "lib.tb_alertlog_demo_global.Test failing alerts"),
+    #                   ("failed", "lib.tb_alertlog_demo_hierarchy.Test failing alerts")])
 
     def test_vhdl_com_example_project(self):
         self.check(join(ROOT, "examples", "vhdl", "com", "run.py"))
