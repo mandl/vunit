@@ -12,7 +12,7 @@ use vunit_lib.dict_pkg.all;
 
 use work.logger_pkg.all;
 use work.log_handler_pkg.all;
-use work.log2_pkg.all;
+use work.log_pkg.all;
 use work.core_pkg.all;
 
 entity tb_log is

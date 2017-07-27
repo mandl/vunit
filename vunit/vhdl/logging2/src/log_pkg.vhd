@@ -12,7 +12,7 @@ use work.logger_pkg.all;
 use work.log_handler_pkg.all;
 use work.log_system_pkg.all;
 
-package log2_pkg is
+package log_pkg is
   constant log_system : log_system_t := new_log_system;
 
   constant default_logger : logger_t := new_logger(log_system, "default");
@@ -123,7 +123,7 @@ package log2_pkg is
 
 end package;
 
-package body log2_pkg is
+package body log_pkg is
   procedure init_display_handler(constant format : in log_format_t := verbose;
                                  constant use_color : in boolean := true) is
   begin

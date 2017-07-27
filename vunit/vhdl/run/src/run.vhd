@@ -8,7 +8,7 @@
 
 use work.logger_pkg.all;
 use work.log_handler_pkg.all;
-use work.log2_pkg.all;
+use work.log_pkg.all;
 use work.checker_pkg.all;
 use work.check_pkg.all;
 use work.string_ops.all;

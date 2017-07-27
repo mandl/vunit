@@ -9,7 +9,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use work.logger_pkg.all;
-use work.log2_pkg.all;
+use work.log_pkg.all;
 use work.integer_vector_ptr_pkg.all;
 
 package checker_pkg is
