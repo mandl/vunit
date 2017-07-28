@@ -79,7 +79,7 @@ begin
         for i in 0 to num_keys(entries)-1 loop
           readline(fptr, l);
           assert l.all = get(entries, integer'image(i))
-            report "(" & integer'image(i) & ") Got " & l.all & " expected " & get(entries, integer'image(i))
+            report "(" & integer'image(i) & ") " & LF & "Got:" & LF & l.all & LF & "expected:" & LF & get(entries, integer'image(i))
             severity failure;
         end loop;
       end if;
@@ -110,6 +110,7 @@ begin
     end procedure;
 
     constant max_time_length : natural := time'image(1 sec)'length;
+    constant time_padding  : string := (1 to max_time_length => ' ');
     impure function format_time(t : time) return string is
       constant time_str : string := time'image(t);
     begin
@@ -145,6 +146,15 @@ begin
       set(entries, "5", "FAILURE - message 6");
       check_log_file(log_file_name, entries);
 
+    elsif run("level format aligns multi line logs") then
+      init_display_handler(format => level);
+      init_file_handler(file_name => log_file_name, format => level);
+      info(logger, "hello" & LF & "world" & LF & "    !");
+      set(entries, "0", "   INFO - hello");
+      set(entries, "1", "          world");
+      set(entries, "2", "              !");
+      check_log_file(log_file_name, entries);
+
     elsif run("csv format") then
       init_display_handler(format => csv);
       init_file_handler(file_name => log_file_name, format => csv);
@@ -169,6 +179,15 @@ begin
       set(entries, "3", format_time(3 ns) & " - logger        - WARNING - message 4");
       set(entries, "4", format_time(4 ns) & " - logger        -   ERROR - message 5");
       set(entries, "5", format_time(5 ns) & " - logger        - FAILURE - message 6");
+      check_log_file(log_file_name, entries);
+
+    elsif run("verbose format aligns multi line logs") then
+      init_display_handler(format => verbose);
+      init_file_handler(file_name => log_file_name, format => verbose);
+      info(logger, "hello" & LF & "world" & LF & "    !");
+      set(entries, "0", format_time(0 ns) & " - logger        -    INFO - hello");
+      set(entries, "1", time_padding      & "                             world");
+      set(entries, "2", time_padding      & "                                 !");
       check_log_file(log_file_name, entries);
 
     elsif run("hierarchical format") then

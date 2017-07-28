@@ -55,6 +55,8 @@ package ansi_pkg is
                            bg : ansi_color_t := no_color;
                            style : ansi_style_t := normal) return string;
 
+  impure function strip_color(msg : string) return string;
+
   impure function color_start(fg : ansi_color_t := no_color;
                               bg : ansi_color_t := no_color;
                               style : ansi_style_t := normal) return string;
@@ -112,6 +114,28 @@ package body ansi_pkg is
     return colorize(msg, fg => colors.fg, bg => colors.bg, style => colors.style);
   end;
 
+  impure function drop_color(msg : string) return string is
+  begin
+    for i in msg'low to msg'high loop
+      if msg(i) = 'm' then
+        return strip_color(msg(i+1 to msg'high));
+      end if;
+    end loop;
+
+    assert false report "incomplete color escape did not end with 'm'";
+  end;
+
+  impure function strip_color(msg : string) return string is
+  begin
+    for i in msg'low to msg'high loop
+      if msg(i) = character'val(27) then
+        return msg(msg'low to i-1) & drop_color(msg(i+1 to msg'high));
+      end if;
+    end loop;
+
+    return msg;
+  end;
+
   impure function colorize(msg : string;
                     fg : ansi_color_t := no_color;
                     bg : ansi_color_t := no_color;
@@ -130,8 +154,8 @@ package body ansi_pkg is
   end;
 
   impure function color_start(fg : ansi_color_t := no_color;
-                       bg : ansi_color_t := no_color;
-                       style : ansi_style_t := normal) return string is
+                              bg : ansi_color_t := no_color;
+                              style : ansi_style_t := normal) return string is
   begin
     if colors_are_enabled then
       return (character'val(27) & '[' &

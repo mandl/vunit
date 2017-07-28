@@ -248,9 +248,20 @@ package body log_handler_pkg is
         end if;
       end;
 
-      procedure write_message is
+      procedure write_message(multi_line_align : boolean := false) is
+        variable prefix_len : natural;
       begin
-        write(l, msg);
+        if not multi_line_align then
+          write(l, msg);
+        else
+          prefix_len := strip_color(l.all)'length;
+          for i in msg'range loop
+            write(l, msg(i));
+            if msg(i) = LF then
+              write(l, string'(1 to prefix_len => ' '));
+            end if;
+          end loop;
+        end if;
       end procedure;
 
       constant format : log_format_t := log_format_t'val(get(log_handler.p_data, format_idx));
@@ -271,7 +282,7 @@ package body log_handler_pkg is
         when level =>
           write_level(field => max_level_length);
           write(l, string'(" - "));
-          write_message;
+          write_message(multi_line_align => true);
 
         when verbose =>
           write_time(field => max_time_length);
@@ -280,7 +291,7 @@ package body log_handler_pkg is
           write(l, string'(" - "));
           write_level(field => max_level_length);
           write(l, string'(" - "));
-          write_message;
+          write_message(multi_line_align => true);
       end case;
     end;
 
@@ -306,7 +317,6 @@ package body log_handler_pkg is
     end;
 
   begin
-
     if log_file_name = null_file_name then
       null;
     elsif log_file_name = stdout_file_name then
