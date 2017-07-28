@@ -12,7 +12,7 @@ context work.com_context;
 use work.queue_pkg.all;
 use work.bus_pkg.all;
 use work.memory_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 entity bus2memory is
   generic (
@@ -24,7 +24,7 @@ architecture a of bus2memory is
 begin
   main : process
     variable request_msg, reply_msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
     variable address : std_logic_vector(address_length(bus_handle)-1 downto 0);
     variable byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
     variable data  : std_logic_vector(data_length(bus_handle)-1 downto 0);
@@ -32,7 +32,7 @@ begin
   begin
     loop
       receive(event, bus_handle.p_actor, request_msg);
-      msg_type := pop_message_type(request_msg);
+      msg_type := pop_msg_type(request_msg);
 
       if msg_type = bus_read_msg then
         address := pop_std_ulogic_vector(request_msg);
@@ -53,7 +53,7 @@ begin
           end if;
         end loop;
       else
-        unexpected_message_type(msg_type);
+        unexpected_msg_type(msg_type);
       end if;
     end loop;
   end process;

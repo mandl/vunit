@@ -16,7 +16,7 @@ use work.axi_pkg.all;
 use work.queue_pkg.all;
 use work.log_pkg.all;
 use work.bus_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 context work.com_context;
 
 library osvvm;
@@ -273,11 +273,11 @@ package body axi_private_pkg is
   procedure main_loop(variable self : inout axi_slave_private_t;
                       signal event : inout event_t) is
     variable request_msg, reply_msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     loop
       receive(event, self.get_actor, request_msg);
-      msg_type := pop_message_type(request_msg);
+      msg_type := pop_msg_type(request_msg);
 
       reply_msg := create;
       if msg_type = axi_slave_set_address_channel_fifo_depth_msg then
@@ -296,7 +296,7 @@ package body axi_private_pkg is
         self.enable_well_behaved_check;
         acknowledge(event, request_msg, true);
       else
-        unexpected_message_type(msg_type);
+        unexpected_msg_type(msg_type);
       end if;
 
       delete(request_msg);

@@ -12,7 +12,7 @@ context work.com_context;
 use work.stream_pkg.all;
 use work.axi_stream_pkg.all;
 use work.queue_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 use work.sync_pkg.all;
 
 entity axi_stream_master is
@@ -30,10 +30,10 @@ architecture a of axi_stream_master is
 begin
   main : process
     variable msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     receive(event, master.p_actor, msg);
-    msg_type := pop_message_type(msg);
+    msg_type := pop_msg_type(msg);
 
     handle_sync_message(event, msg_type, msg);
 
@@ -49,7 +49,7 @@ begin
       tvalid <= '0';
       tlast <= '0';
     else
-      unexpected_message_type(msg_type);
+      unexpected_msg_type(msg_type);
     end if;
   end process;
 

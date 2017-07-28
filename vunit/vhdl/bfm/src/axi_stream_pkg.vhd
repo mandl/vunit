@@ -12,7 +12,7 @@ use work.log_pkg.all;
 use work.stream_pkg.all;
 context work.com_context;
 context work.data_types_context;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 package axi_stream_pkg is
 
@@ -38,7 +38,7 @@ package axi_stream_pkg is
   impure function as_stream(master : axi_stream_master_t) return stream_master_t;
   impure function as_stream(slave : axi_stream_slave_t) return stream_slave_t;
 
-  constant write_axi_stream_msg : message_type_t := new_message_type("write axi stream");
+  constant write_axi_stream_msg : msg_type_t := new_msg_type("write axi stream");
 
   procedure write_axi_stream(signal event : inout event_t;
                              axi_stream : axi_stream_master_t;
@@ -92,7 +92,7 @@ package body axi_stream_pkg is
     variable msg : msg_t := create;
     constant normalized_data : std_logic_vector(tdata'length-1 downto 0) := tdata;
   begin
-    push_message_type(msg, write_axi_stream_msg);
+    push_msg_type(msg, write_axi_stream_msg);
     push_std_ulogic_vector(msg, normalized_data);
     push_std_ulogic(msg, tlast);
     send(event, axi_stream.p_actor, msg);

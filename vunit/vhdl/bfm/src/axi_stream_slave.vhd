@@ -12,7 +12,7 @@ context work.com_context;
 use work.stream_pkg.all;
 use work.axi_stream_pkg.all;
 use work.log_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 use work.sync_pkg.all;
 
 entity axi_stream_slave is
@@ -30,10 +30,10 @@ architecture a of axi_stream_slave is
 begin
   main : process
     variable reply_msg, msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     receive(event, slave.p_actor, msg);
-    msg_type := pop_message_type(msg);
+    msg_type := pop_msg_type(msg);
 
     if msg_type = stream_read_msg then
       tready <= '1';
@@ -48,7 +48,7 @@ begin
       push_std_ulogic_vector(reply_msg, tdata);
       reply(event, msg, reply_msg);
     else
-      unexpected_message_type(msg_type);
+      unexpected_msg_type(msg_type);
     end if;
 
   end process;

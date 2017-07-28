@@ -9,7 +9,7 @@ library vunit_lib;
 context vunit_lib.vunit_context;
 context work.com_context;
 use work.sync_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 entity tb_sync_pkg is
   generic (runner_cfg : string);
@@ -39,11 +39,11 @@ begin
 
   support : process
     variable msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     receive(event, actor, msg);
-    msg_type := pop_message_type(msg);
+    msg_type := pop_msg_type(msg);
     handle_sync_message(event, msg_type, msg);
-    unexpected_message_type(msg_type);
+    unexpected_msg_type(msg_type);
   end process;
 end architecture;

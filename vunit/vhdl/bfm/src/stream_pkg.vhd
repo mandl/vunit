@@ -10,7 +10,7 @@ use ieee.std_logic_1164.all;
 context work.vunit_context;
 context work.com_context;
 use work.queue_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 use work.sync_pkg.all;
 
 package stream_pkg is
@@ -51,8 +51,8 @@ package stream_pkg is
                          expected : std_logic_vector;
                          msg : string := "");
 
-  constant stream_write_msg : message_type_t := new_message_type("stream write");
-  constant stream_read_msg : message_type_t := new_message_type("stream read");
+  constant stream_write_msg : msg_type_t := new_msg_type("stream write");
+  constant stream_read_msg : msg_type_t := new_msg_type("stream read");
 
 end package;
 
@@ -73,7 +73,7 @@ package body stream_pkg is
     variable msg : msg_t := create;
     constant normalized_data : std_logic_vector(data'length-1 downto 0) := data;
   begin
-    push_message_type(msg, stream_write_msg);
+    push_msg_type(msg, stream_write_msg);
     push_std_ulogic_vector(msg, normalized_data);
     send(event, stream.p_actor, msg);
   end;
@@ -89,7 +89,7 @@ package body stream_pkg is
                         variable reference : inout stream_reference_t) is
   begin
     reference := create;
-    push_message_type(reference, stream_read_msg);
+    push_msg_type(reference, stream_read_msg);
     send(event, stream.p_actor, reference);
   end;
 

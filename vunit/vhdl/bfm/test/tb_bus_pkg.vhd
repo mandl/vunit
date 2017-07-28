@@ -16,7 +16,7 @@ use work.queue_pkg.all;
 use work.bus_pkg.all;
 use work.memory_pkg.all;
 use work.logger_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 entity tb_bus_pkg is
   generic (runner_cfg : string);

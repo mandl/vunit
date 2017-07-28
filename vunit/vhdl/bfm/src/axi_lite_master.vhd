@@ -12,7 +12,7 @@ use work.axi_pkg.all;
 use work.queue_pkg.all;
 use work.bus_pkg.all;
 use work.axi_private_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 context work.com_context;
 
 entity axi_lite_master is
@@ -49,12 +49,12 @@ architecture a of axi_lite_master is
 begin
   main : process
     variable request_msg, reply_msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
     variable w_done, aw_done : boolean;
   begin
     loop
       receive(event, bus_handle.p_actor, request_msg);
-      msg_type := pop_message_type(request_msg);
+      msg_type := pop_msg_type(request_msg);
 
       if msg_type = bus_read_msg then
         araddr <= pop_std_ulogic_vector(request_msg);
@@ -101,7 +101,7 @@ begin
         bready <= '0';
         check_axi_resp(bus_handle, bresp, axi_resp_okay, "bresp");
       else
-        unexpected_message_type(msg_type);
+        unexpected_msg_type(msg_type);
       end if;
     end loop;
   end process;

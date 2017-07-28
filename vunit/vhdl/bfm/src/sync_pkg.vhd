@@ -10,11 +10,11 @@ use ieee.std_logic_1164.all;
 context work.vunit_context;
 context work.com_context;
 use work.queue_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 package sync_pkg is
-  constant await_completion_msg : message_type_t := new_message_type("await completion");
-  constant wait_for_time_msg : message_type_t := new_message_type("wait for time");
+  constant await_completion_msg : msg_type_t := new_msg_type("await completion");
+  constant wait_for_time_msg : msg_type_t := new_msg_type("wait for time");
 
   procedure await_completion(signal event : inout event_t;
                              actor : actor_t);
@@ -23,7 +23,7 @@ package sync_pkg is
                           delay : delay_length);
 
   procedure handle_sync_message(signal event : inout event_t;
-                                variable message_type : inout message_type_t;
+                                variable msg_type : inout msg_type_t;
                                 variable msg : inout msg_t);
 end package;
 
@@ -33,7 +33,7 @@ package body sync_pkg is
     variable msg, reply_msg : msg_t;
   begin
     msg := create;
-    push_message_type(msg, await_completion_msg);
+    push_msg_type(msg, await_completion_msg);
     send(event, actor, msg);
     receive_reply(event, msg, reply_msg);
     delete(reply_msg);
@@ -45,24 +45,24 @@ package body sync_pkg is
     variable msg : msg_t;
   begin
     msg := create;
-    push_message_type(msg, wait_for_time_msg);
+    push_msg_type(msg, wait_for_time_msg);
     push_time(msg, delay);
     send(event, actor, msg);
   end;
 
   procedure handle_sync_message(signal event : inout event_t;
-                                variable message_type : inout message_type_t;
+                                variable msg_type : inout msg_type_t;
                                 variable msg : inout msg_t) is
     variable reply_msg : msg_t;
     variable delay : delay_length;
   begin
-    if message_type = await_completion_msg then
-      handle_message(message_type);
+    if msg_type = await_completion_msg then
+      handle_message(msg_type);
       reply_msg := create;
       reply(event, msg, reply_msg);
 
-    elsif message_type = wait_for_time_msg then
-      handle_message(message_type);
+    elsif msg_type = wait_for_time_msg then
+      handle_message(msg_type);
       delay := pop_time(msg);
       wait for delay;
     end if;

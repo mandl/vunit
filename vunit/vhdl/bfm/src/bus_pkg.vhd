@@ -11,7 +11,7 @@ use ieee.numeric_std.all;
 use work.queue_pkg.all;
 use work.log_pkg.all;
 use work.logger_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 context work.com_context;
 
 package bus_pkg is
@@ -26,8 +26,8 @@ package bus_pkg is
     p_logger : logger_t;
   end record;
 
-  constant bus_write_msg : message_type_t := new_message_type("write bus");
-  constant bus_read_msg : message_type_t := new_message_type("read bus");
+  constant bus_write_msg : msg_type_t := new_msg_type("write bus");
+  constant bus_read_msg : msg_type_t := new_msg_type("read bus");
 
   constant bus_logger : logger_t := new_logger("vunit_lib.bus_pkg");
   impure function new_bus(data_length : natural;
@@ -169,7 +169,7 @@ package body bus_pkg is
     variable full_address : std_logic_vector(bus_handle.p_address_length-1 downto 0) := (others => '0');
     variable full_byte_enable : std_logic_vector(byte_enable_length(bus_handle)-1 downto 0);
   begin
-    push_message_type(request_msg, bus_write_msg);
+    push_msg_type(request_msg, bus_write_msg);
 
     full_address(address'length-1 downto 0) := address;
     push_std_ulogic_vector(request_msg, full_address);
@@ -246,7 +246,7 @@ package body bus_pkg is
     alias request_msg : msg_t is reference;
   begin
     request_msg := create;
-    push_message_type(request_msg, bus_read_msg);
+    push_msg_type(request_msg, bus_read_msg);
     full_address(address'length-1 downto 0) := address;
     push_std_ulogic_vector(request_msg, full_address);
     send(event, bus_handle.p_actor, request_msg);

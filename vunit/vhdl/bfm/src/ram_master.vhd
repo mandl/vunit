@@ -11,7 +11,7 @@ use ieee.numeric_std.all;
 
 use work.queue_pkg.all;
 use work.bus_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 context work.com_context;
 
 entity ram_master is
@@ -36,10 +36,10 @@ architecture a of ram_master is
 begin
   main : process
     variable request_msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     receive(event, bus_handle.p_actor, request_msg);
-    msg_type := pop_message_type(request_msg);
+    msg_type := pop_msg_type(request_msg);
 
     if msg_type = bus_read_msg then
       en <= '1';
@@ -59,7 +59,7 @@ begin
       wait until en = '1' and rising_edge(clk);
       en <= '0';
     else
-      unexpected_message_type(msg_type);
+      unexpected_msg_type(msg_type);
     end if;
 
   end process;

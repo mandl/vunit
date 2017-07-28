@@ -11,7 +11,7 @@ context work.com_context;
 use work.stream_pkg.all;
 use work.integer_vector_ptr_pkg.all;
 use work.queue_pkg.all;
-use work.message_types_pkg.all;
+use work.msg_types_pkg.all;
 
 package uart_pkg is
   type uart_master_t is record
@@ -48,7 +48,7 @@ package uart_pkg is
   impure function as_stream(uart_master : uart_master_t) return stream_master_t;
   impure function as_stream(uart_slave : uart_slave_t) return stream_slave_t;
 
-  constant uart_set_baud_rate_msg : message_type_t := new_message_type("uart set baud rate");
+  constant uart_set_baud_rate_msg : msg_type_t := new_msg_type("uart set baud rate");
 end package;
 
 package body uart_pkg is
@@ -86,7 +86,7 @@ package body uart_pkg is
                           baud_rate : natural) is
     variable msg : msg_t := create;
   begin
-    push_message_type(msg, uart_set_baud_rate_msg);
+    push_msg_type(msg, uart_set_baud_rate_msg);
     push(msg, baud_rate);
     send(event, actor, msg);
   end;

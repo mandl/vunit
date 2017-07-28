@@ -13,7 +13,7 @@ context vunit_lib.com_context;
 use vunit_lib.stream_pkg.all;
 use vunit_lib.uart_pkg.all;
 use vunit_lib.queue_pkg.all;
-use vunit_lib.message_types_pkg.all;
+use vunit_lib.msg_types_pkg.all;
 
 entity uart_slave is
   generic (
@@ -30,10 +30,10 @@ begin
 
   main : process
     variable reply_msg, msg : msg_t;
-    variable msg_type : message_type_t;
+    variable msg_type : msg_type_t;
   begin
     receive(event, uart.p_stream.p_actor, msg);
-    msg_type := pop_message_type(msg);
+    msg_type := pop_msg_type(msg);
 
     if msg_type = uart_set_baud_rate_msg then
       baud_rate <= pop(msg);
@@ -48,7 +48,7 @@ begin
       reply(event, msg, reply_msg);
 
     else
-      unexpected_message_type(msg_type);
+      unexpected_msg_type(msg_type);
     end if;
 
   end process;
