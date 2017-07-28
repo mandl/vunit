@@ -134,14 +134,14 @@ class TestExternalRunScripts(unittest.TestCase):
                    vhdl_standard='93')
 
     def test_logging_vhdl_2008(self):
-        self.check(join(VHDL_PATH, "logging", "run.py"))
+        self.check(join(VHDL_PATH, "logging2", "run.py"))
 
     def test_logging_vhdl_2002(self):
-        self.check(join(VHDL_PATH, "logging", "run.py"),
+        self.check(join(VHDL_PATH, "logging2", "run.py"),
                    vhdl_standard='2002')
 
     def test_logging_vhdl_93(self):
-        self.check(join(VHDL_PATH, "logging", "run.py"),
+        self.check(join(VHDL_PATH, "logging2", "run.py"),
                    vhdl_standard='93')
 
     def test_run_vhdl_2008(self):
