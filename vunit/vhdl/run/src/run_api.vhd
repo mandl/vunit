@@ -10,6 +10,8 @@
 use work.check_types_pkg.checker_stat_t;
 use work.run_base_pkg.all;
 use work.run_types_pkg.all;
+use work.vunit_core_pkg.setup;
+use work.vunit_stop_pkg.vunit_stop;
 
 library ieee;
 use ieee.std_logic_1164.all;

@@ -3,6 +3,7 @@
 -- You can obtain one at http://mozilla.org/MPL/2.0/.
 --
 -- Copyright (c) 2015-2016, Lars Asplund lars.anders.asplund@gmail.com
+use std.env.stop;
 
 package vunit_stop_pkg is
   procedure vunit_stop(status : integer);
